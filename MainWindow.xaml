@@ -1,0 +1,276 @@
+<Window x:Class="CzurWpfDemo.MainWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        Title="CZUR ET24 Pro"
+        Height="750" Width="1100"
+        Background="#0F1117"
+        WindowStartupLocation="CenterScreen">
+
+    <Window.Resources>
+        <Style x:Key="PrimaryButton" TargetType="Button">
+            <Setter Property="Background" Value="#2563EB"/>
+            <Setter Property="Foreground" Value="White"/>
+            <Setter Property="FontFamily" Value="Segoe UI Semibold"/>
+            <Setter Property="FontSize" Value="13"/>
+            <Setter Property="Padding" Value="18,10"/>
+            <Setter Property="BorderThickness" Value="0"/>
+            <Setter Property="Cursor" Value="Hand"/>
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="Button">
+                        <Border Background="{TemplateBinding Background}"
+                                CornerRadius="8"
+                                Padding="{TemplateBinding Padding}">
+                            <ContentPresenter HorizontalAlignment="Center"
+                                              VerticalAlignment="Center"/>
+                        </Border>
+                        <ControlTemplate.Triggers>
+                            <Trigger Property="IsMouseOver" Value="True">
+                                <Setter Property="Background" Value="#1D4ED8"/>
+                            </Trigger>
+                            <Trigger Property="IsEnabled" Value="False">
+                                <Setter Property="Background" Value="#374151"/>
+                                <Setter Property="Foreground" Value="#6B7280"/>
+                            </Trigger>
+                        </ControlTemplate.Triggers>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+
+        <Style x:Key="DangerButton" TargetType="Button" BasedOn="{StaticResource PrimaryButton}">
+            <Setter Property="Background" Value="#DC2626"/>
+            <Style.Triggers>
+                <Trigger Property="IsMouseOver" Value="True">
+                    <Setter Property="Background" Value="#B91C1C"/>
+                </Trigger>
+            </Style.Triggers>
+        </Style>
+
+        <Style x:Key="SuccessButton" TargetType="Button" BasedOn="{StaticResource PrimaryButton}">
+            <Setter Property="Background" Value="#059669"/>
+            <Style.Triggers>
+                <Trigger Property="IsMouseOver" Value="True">
+                    <Setter Property="Background" Value="#047857"/>
+                </Trigger>
+            </Style.Triggers>
+        </Style>
+
+        <Style x:Key="CardBorder" TargetType="Border">
+            <Setter Property="Background" Value="#1C1F2E"/>
+            <Setter Property="CornerRadius" Value="12"/>
+            <Setter Property="Padding" Value="16"/>
+        </Style>
+
+        <Style x:Key="LabelText" TargetType="TextBlock">
+            <Setter Property="Foreground" Value="#9CA3AF"/>
+            <Setter Property="FontFamily" Value="Segoe UI"/>
+            <Setter Property="FontSize" Value="12"/>
+        </Style>
+
+        <Style x:Key="ValueText" TargetType="TextBlock">
+            <Setter Property="Foreground" Value="#F3F4F6"/>
+            <Setter Property="FontFamily" Value="Segoe UI Semibold"/>
+            <Setter Property="FontSize" Value="14"/>
+        </Style>
+
+        <Style TargetType="Thumb">
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="Thumb">
+                        <Ellipse Fill="#3B82F6" Stroke="White" StrokeThickness="2" Cursor="Cross"/>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+    </Window.Resources>
+
+    <Grid Margin="20">
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="*"/>
+            <RowDefinition Height="Auto"/>
+        </Grid.RowDefinitions>
+
+        <!-- Header -->
+        <StackPanel Grid.Row="0" Margin="0,0,0,16">
+            <TextBlock Text="CZUR ET24 Pro" FontFamily="Segoe UI Light"
+                       FontSize="28" Foreground="#F3F4F6"/>
+        </StackPanel>
+
+        <!-- Main Content -->
+        <Grid Grid.Row="1">
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="*"/>
+                <ColumnDefinition Width="280"/>
+            </Grid.ColumnDefinitions>
+
+            <!-- Camera Preview -->
+            <Border Grid.Column="0" Style="{StaticResource CardBorder}" Margin="0,0,12,0">
+                <Grid>
+                    <Grid.RowDefinitions>
+                        <RowDefinition Height="Auto"/>
+                        <RowDefinition Height="*"/>
+                        <RowDefinition Height="Auto"/>
+                    </Grid.RowDefinitions>
+
+                    <TextBlock Grid.Row="0" Text="📷  Kamera Ko'rinishi"
+                               Style="{StaticResource LabelText}"
+                               Margin="0,0,0,12" FontSize="13"/>
+
+                    <!-- Video Feed -->
+                    <Border Grid.Row="1" Background="#0A0D14" CornerRadius="8"
+                            ClipToBounds="True">
+                        <Grid>
+                            <!-- Placeholder when not streaming -->
+                            <StackPanel x:Name="PlaceholderPanel"
+                                        HorizontalAlignment="Center"
+                                        VerticalAlignment="Center">
+                                <TextBlock Text="⬛" FontSize="48"
+                                           HorizontalAlignment="Center"
+                                           Foreground="#374151"/>
+                                <TextBlock Text="Kamera ulanmagan"
+                                           Foreground="#4B5563"
+                                           FontFamily="Segoe UI"
+                                           FontSize="14"
+                                           HorizontalAlignment="Center"
+                                           Margin="0,8,0,0"/>
+                                <TextBlock Text="'Kamerani Boshlash' tugmasini bosing"
+                                           Foreground="#374151"
+                                           FontFamily="Segoe UI"
+                                           FontSize="12"
+                                           HorizontalAlignment="Center"
+                                           Margin="0,4,0,0"/>
+                            </StackPanel>
+
+                            <!-- Live Image with Integrated Crop Overlay -->
+                            <Viewbox Stretch="Uniform">
+                                <Grid x:Name="CameraGrid">
+                                    <Image x:Name="CameraImage"
+                                           RenderOptions.BitmapScalingMode="HighQuality"
+                                           Visibility="Collapsed"/>
+                                    <!-- This stays hidden until camera connects, matches Image size in Code-behind -->
+                                    <Canvas x:Name="LiveCropCanvas" Visibility="Collapsed" 
+                                            HorizontalAlignment="Left" VerticalAlignment="Top">
+                                        <Polygon x:Name="LiveCropPolygon" Stroke="#3B82F6" StrokeThickness="3" Fill="#223B82F6" IsHitTestVisible="False"/>
+                                        
+                                        <!-- Draggable points, hidden during Auto mode, visible in Manual mode -->
+                                        <Thumb x:Name="ThumbTL" Width="30" Height="30" DragDelta="Thumb_DragDelta" Tag="0" Visibility="Collapsed"/>
+                                        <Thumb x:Name="ThumbTR" Width="30" Height="30" DragDelta="Thumb_DragDelta" Tag="1" Visibility="Collapsed"/>
+                                        <Thumb x:Name="ThumbBR" Width="30" Height="30" DragDelta="Thumb_DragDelta" Tag="2" Visibility="Collapsed"/>
+                                        <Thumb x:Name="ThumbBL" Width="30" Height="30" DragDelta="Thumb_DragDelta" Tag="3" Visibility="Collapsed"/>
+                                    </Canvas>
+                                </Grid>
+                            </Viewbox>
+                        </Grid>
+                    </Border>
+
+                    <!-- Controls -->
+                    <StackPanel Grid.Row="2" Orientation="Horizontal"
+                                Margin="0,12,0,0" HorizontalAlignment="Center">
+                        <Button x:Name="BtnStart" Content="▶  Hujjat yaratish"
+                                Style="{StaticResource SuccessButton}"
+                                Click="BtnStart_Click" Margin="0,0,8,0"/>
+                        <Button x:Name="BtnStop" Content="⏹  To'xtatish"
+                                Style="{StaticResource DangerButton}"
+                                Click="BtnStop_Click" IsEnabled="False"
+                                Margin="0,0,8,0"/>
+                        <Button x:Name="BtnManualCrop" Content="🖐️  Qo'lda tahrirlash"
+                                Style="{StaticResource PrimaryButton}" Background="#8B5CF6"
+                                Click="BtnManualCrop_Click" IsEnabled="False" Margin="0,0,8,0"/>
+                        <Button x:Name="BtnCapture" Content="📸  Rasmga olish"
+                                Style="{StaticResource PrimaryButton}"
+                                Click="BtnCapture_Click" IsEnabled="False"/>
+                    </StackPanel>
+                </Grid>
+            </Border>
+
+            <!-- Right Panel -->
+            <StackPanel Grid.Column="1">
+
+                <!-- Device Info -->
+                <Border Style="{StaticResource CardBorder}" Margin="0,0,0,12">
+                    <StackPanel>
+                        <TextBlock Text="Holat:" Style="{StaticResource LabelText}"
+                                   Margin="0,0,0,2"/>
+                        <TextBlock x:Name="TxtStatus" Text="Tayyor"
+                                   Style="{StaticResource ValueText}"
+                                   Foreground="#10B981" Margin="0,0,0,10"/>
+
+                        <TextBlock Text="Kamera Indeksi:" Style="{StaticResource LabelText}"
+                                   Margin="0,0,0,2"/>
+                        <ComboBox x:Name="CmbCameraIndex"
+                                  Margin="0,0,0,10"
+                                  Background="#0F1117"
+                                  Foreground="#F3F4F6"
+                                  BorderBrush="#374151"
+                                  FontFamily="Segoe UI"
+                                  FontSize="13"
+                                  Padding="8,6">
+                            <ComboBoxItem Content="Kamera 0 (Birinchi)" IsSelected="True"/>
+                            <ComboBoxItem Content="Kamera 1"/>
+                            <ComboBoxItem Content="Kamera 2"/>
+                            <ComboBoxItem Content="Kamera 3"/>
+                        </ComboBox>
+
+                        <TextBlock Text="Razresheniye:" Style="{StaticResource LabelText}"
+                                   Margin="0,0,0,2"/>
+                        <ComboBox x:Name="CmbResolution"
+                                  Margin="0,0,0,10"
+                                  Background="#0F1117"
+                                  Foreground="#F3F4F6"
+                                  BorderBrush="#374151"
+                                  FontFamily="Segoe UI"
+                                  FontSize="13"
+                                  Padding="8,6">
+                            <ComboBoxItem Content="5696×4272 (24MP Maksimal Sifat)" IsSelected="True"/>
+                            <ComboBoxItem Content="4000×3000 (12MP Yuqori Sifat)"/>
+                            <ComboBoxItem Content="3072×1728 (Taqdimot)"/>
+                            <ComboBoxItem Content="1920×1080 (HD)"/>
+                            <ComboBoxItem Content="1536×1152 (Skan)"/>
+                        </ComboBox>
+
+                        <TextBlock Text="FPS:" Style="{StaticResource LabelText}"
+                                   Margin="0,0,0,2"/>
+                        <TextBlock x:Name="TxtFps" Text="—"
+                                   Style="{StaticResource ValueText}" Margin="0,0,0,10"/>
+
+                        <TextBlock Text="Olingan Rasmlar:" Style="{StaticResource LabelText}"
+                                   Margin="0,0,0,2"/>
+                        <TextBlock x:Name="TxtCaptureCount" Text="0"
+                                   Style="{StaticResource ValueText}"/>
+                    </StackPanel>
+                </Border>
+
+                <!-- Captured Image Preview -->
+                <Border Style="{StaticResource CardBorder}" Margin="0,0,0,12">
+                    <StackPanel>
+                        <TextBlock Text="🖼  Oxirgi Rasm"
+                                   Style="{StaticResource LabelText}"
+                                   Margin="0,0,0,8" FontSize="13"/>
+                        <Border Background="#0A0D14" CornerRadius="6"
+                                Height="150">
+                            <Image x:Name="CapturedImage"
+                                   Stretch="Uniform"
+                                   RenderOptions.BitmapScalingMode="HighQuality"/>
+                        </Border>
+                        <Button x:Name="BtnSave" Content="💾  PDF qilib saqlash"
+                                Style="{StaticResource PrimaryButton}"
+                                Click="BtnSave_Click" IsEnabled="False"
+                                Margin="0,10,0,0"/>
+                    </StackPanel>
+                </Border>
+
+            </StackPanel>
+        </Grid>
+
+        <!-- Status Bar -->
+        <Border Grid.Row="2" Background="#1C1F2E" CornerRadius="8"
+                Padding="16,10" Margin="0,12,0,0">
+            <TextBlock x:Name="TxtLog" Text="Tayyor. Kamerani boshlash uchun 'Boshlash' tugmasini bosing."
+                       Foreground="#6B7280" FontFamily="Consolas"
+                       FontSize="12" TextWrapping="Wrap"/>
+        </Border>
+
+    </Grid>
+</Window>
