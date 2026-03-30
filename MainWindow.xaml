@@ -197,7 +197,7 @@
                                    Style="{StaticResource ValueText}"
                                    Foreground="#10B981" Margin="0,0,0,10"/>
 
-                        <TextBlock Text="Kamera Indeksi:" Style="{StaticResource LabelText}"
+                        <!--<TextBlock Text="Kamera Indeksi:" Style="{StaticResource LabelText}"
                                    Margin="0,0,0,2"/>
                         <ComboBox x:Name="CmbCameraIndex"
                                   Margin="0,0,0,10"
@@ -214,8 +214,8 @@
                         </ComboBox>
 
                         <TextBlock Text="Razresheniye:" Style="{StaticResource LabelText}"
-                                   Margin="0,0,0,2"/>
-                        <ComboBox x:Name="CmbResolution"
+                                   Margin="0,0,0,2"/>-->
+                        <!--<ComboBox x:Name="CmbResolution"
                                   Margin="0,0,0,10"
                                   Background="#0F1117"
                                   Foreground="#F3F4F6"
@@ -228,7 +228,7 @@
                             <ComboBoxItem Content="3072×1728 (Taqdimot)"/>
                             <ComboBoxItem Content="1920×1080 (HD)"/>
                             <ComboBoxItem Content="1536×1152 (Skan)"/>
-                        </ComboBox>
+                        </ComboBox>-->
 
                         <TextBlock Text="FPS:" Style="{StaticResource LabelText}"
                                    Margin="0,0,0,2"/>

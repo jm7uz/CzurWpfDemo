@@ -64,66 +64,66 @@ namespace CzurWpfDemo
         }
 
         // ─── Kamerani Boshlash ────────────────────────────────────────
-        private async void BtnStart_Click(object sender, RoutedEventArgs e)
-        {
-            int cameraIndex = CmbCameraIndex.SelectedIndex;
-            var (width, height) = _resolutions[CmbResolution.SelectedIndex];
+        //private async void BtnStart_Click(object sender, RoutedEventArgs e)
+        //{
+        //    //int cameraIndex = CmbCameraIndex.SelectedIndex;
+        //    //var (width, height) = _resolutions[CmbResolution.SelectedIndex];
 
-            SetStatus("Ulanyapti...", "#F59E0B");
-            Log($"Kamera {cameraIndex} ochilmoqda ({width}×{height})...");
+        //    SetStatus("Ulanyapti...", "#F59E0B");
+        //    Log($"Kamera {cameraIndex} ochilmoqda ({width}×{height})...");
 
-            BtnStart.IsEnabled = false;
+        //    BtnStart.IsEnabled = false;
 
-            bool success = await Task.Run(() => InitCamera(cameraIndex, width, height));
+        //    bool success = await Task.Run(() => InitCamera(cameraIndex, width, height));
 
-            if (success)
-            {
-                _isRunning = true;
-                _cts = new CancellationTokenSource();
+        //    if (success)
+        //    {
+        //        _isRunning = true;
+        //        _cts = new CancellationTokenSource();
 
-                PlaceholderPanel.Visibility = Visibility.Collapsed;
-                CameraImage.Visibility = Visibility.Visible;
+        //        PlaceholderPanel.Visibility = Visibility.Collapsed;
+        //        CameraImage.Visibility = Visibility.Visible;
 
-                BtnStop.IsEnabled = true;
-                BtnManualCrop.IsEnabled = true;
-                _isManualCropMode = false;
-                BtnCapture.IsEnabled = true;
+        //        BtnStop.IsEnabled = true;
+        //        BtnManualCrop.IsEnabled = true;
+        //        _isManualCropMode = false;
+        //        BtnCapture.IsEnabled = true;
                 
-                LiveCropCanvas.Visibility = Visibility.Visible;
+        //        LiveCropCanvas.Visibility = Visibility.Visible;
 
-                SetStatus("Jonli efir", "#10B981");
-                Log($"✅ Kamera muvaffaqiyatli ulandi. {width}×{height} @ CZUR UVC rejimi.");
+        //        SetStatus("Jonli efir", "#10B981");
+        //        Log($"✅ Kamera muvaffaqiyatli ulandi. {width}×{height} @ CZUR UVC rejimi.");
 
-                _fpsStopwatch.Restart();
-                _frameCount = 0;
+        //        _fpsStopwatch.Restart();
+        //        _frameCount = 0;
                 
-                foreach (var mat in _scannedPages) mat.Dispose();
-                _scannedPages.Clear();
-                _captureCount = 0;
-                TxtCaptureCount.Text = "0";
-                BtnSave.IsEnabled = false;
-                CapturedImage.Source = null;
+        //        foreach (var mat in _scannedPages) mat.Dispose();
+        //        _scannedPages.Clear();
+        //        _captureCount = 0;
+        //        TxtCaptureCount.Text = "0";
+        //        BtnSave.IsEnabled = false;
+        //        CapturedImage.Source = null;
 
-                _captureTask = Task.Run(() => CaptureLoop(_cts.Token));
-            }
-            else
-            {
-                BtnStart.IsEnabled = true;
-                SetStatus("Xatolik", "#EF4444");
-                Log("❌ Kamera ulanmadi. Qurilma ulanganligi va indeksi to'g'riligini tekshiring.");
+        //        _captureTask = Task.Run(() => CaptureLoop(_cts.Token));
+        //    }
+        //    else
+        //    {
+        //        BtnStart.IsEnabled = true;
+        //        SetStatus("Xatolik", "#EF4444");
+        //        Log("❌ Kamera ulanmadi. Qurilma ulanganligi va indeksi to'g'riligini tekshiring.");
 
-                MessageBox.Show(
-                    "Kamera ochilmadi!\n\n" +
-                    "Tekshiring:\n" +
-                    "• CZUR ET24 Pro USB ga ulangan\n" +
-                    "• Qurilma menejerida ko'rinadi\n" +
-                    "• Boshqa dastur kamerani ishlatmayapti\n" +
-                    "• Kamera indeksi to'g'ri (0, 1, 2...)",
-                    "Xatolik",
-                    MessageBoxButton.OK,
-                    MessageBoxImage.Warning);
-            }
-        }
+        //        MessageBox.Show(
+        //            "Kamera ochilmadi!\n\n" +
+        //            "Tekshiring:\n" +
+        //            "• CZUR ET24 Pro USB ga ulangan\n" +
+        //            "• Qurilma menejerida ko'rinadi\n" +
+        //            "• Boshqa dastur kamerani ishlatmayapti\n" +
+        //            "• Kamera indeksi to'g'ri (0, 1, 2...)",
+        //            "Xatolik",
+        //            MessageBoxButton.OK,
+        //            MessageBoxImage.Warning);
+        //    }
+        //}
 
         // ─── Kamerani To'xtatish ─────────────────────────────────────
         private async void BtnStop_Click(object sender, RoutedEventArgs e)
@@ -621,6 +621,11 @@ namespace CzurWpfDemo
             if (_captureTask != null) await _captureTask;
             _capture?.Dispose();
             base.OnClosed(e);
+        }
+
+        private void BtnStart_Click(object sender, RoutedEventArgs e)
+        {
+
         }
     }
 }
