@@ -1,0 +1,242 @@
+<Window x:Class="CzurWpfDemo.Views.ReportWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        Title="Hisobotlar — Undruv bo'limi"
+        Height="700" Width="1100"
+        Background="#0F1117"
+        WindowStartupLocation="CenterScreen">
+
+    <Window.Resources>
+        <Style x:Key="LabelText" TargetType="TextBlock">
+            <Setter Property="Foreground" Value="#9CA3AF"/>
+            <Setter Property="FontFamily" Value="Segoe UI"/>
+            <Setter Property="FontSize" Value="12"/>
+        </Style>
+
+        <Style x:Key="FilterInput" TargetType="TextBox">
+            <Setter Property="Background" Value="#1C1F2E"/>
+            <Setter Property="Foreground" Value="#F3F4F6"/>
+            <Setter Property="BorderBrush" Value="#374151"/>
+            <Setter Property="BorderThickness" Value="1"/>
+            <Setter Property="FontFamily" Value="Segoe UI"/>
+            <Setter Property="FontSize" Value="13"/>
+            <Setter Property="Padding" Value="10,8"/>
+            <Setter Property="CaretBrush" Value="#F3F4F6"/>
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="TextBox">
+                        <Border Background="{TemplateBinding Background}"
+                                BorderBrush="{TemplateBinding BorderBrush}"
+                                BorderThickness="{TemplateBinding BorderThickness}"
+                                CornerRadius="6" Padding="{TemplateBinding Padding}">
+                            <ScrollViewer x:Name="PART_ContentHost"/>
+                        </Border>
+                        <ControlTemplate.Triggers>
+                            <Trigger Property="IsFocused" Value="True">
+                                <Setter Property="BorderBrush" Value="#2563EB"/>
+                            </Trigger>
+                        </ControlTemplate.Triggers>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+
+        <Style x:Key="FilterDatePicker" TargetType="DatePicker">
+            <Setter Property="Background" Value="#1C1F2E"/>
+            <Setter Property="Foreground" Value="#F3F4F6"/>
+            <Setter Property="BorderBrush" Value="#374151"/>
+            <Setter Property="BorderThickness" Value="1"/>
+            <Setter Property="FontFamily" Value="Segoe UI"/>
+            <Setter Property="FontSize" Value="13"/>
+            <Setter Property="Padding" Value="6,4"/>
+        </Style>
+
+        <Style x:Key="ActionButton" TargetType="Button">
+            <Setter Property="Background" Value="#2563EB"/>
+            <Setter Property="Foreground" Value="White"/>
+            <Setter Property="FontFamily" Value="Segoe UI Semibold"/>
+            <Setter Property="FontSize" Value="13"/>
+            <Setter Property="Padding" Value="16,8"/>
+            <Setter Property="BorderThickness" Value="0"/>
+            <Setter Property="Cursor" Value="Hand"/>
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="Button">
+                        <Border x:Name="Bd" Background="{TemplateBinding Background}"
+                                CornerRadius="6" Padding="{TemplateBinding Padding}">
+                            <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                        </Border>
+                        <ControlTemplate.Triggers>
+                            <Trigger Property="IsMouseOver" Value="True">
+                                <Setter TargetName="Bd" Property="Background" Value="#1D4ED8"/>
+                            </Trigger>
+                            <Trigger Property="IsEnabled" Value="False">
+                                <Setter TargetName="Bd" Property="Background" Value="#374151"/>
+                                <Setter Property="Foreground" Value="#6B7280"/>
+                            </Trigger>
+                        </ControlTemplate.Triggers>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+    </Window.Resources>
+
+    <Grid Margin="20">
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="*"/>
+            <RowDefinition Height="Auto"/>
+        </Grid.RowDefinitions>
+
+        <!-- Header -->
+        <DockPanel Grid.Row="0" Margin="0,0,0,16">
+            <StackPanel>
+                <TextBlock Text="Hisobotlar" FontFamily="Segoe UI Light"
+                           FontSize="26" Foreground="#F3F4F6"/>
+                <TextBlock x:Name="TxtUserInfo" Text=""
+                           Foreground="#6B7280" FontFamily="Segoe UI"
+                           FontSize="12" Margin="0,2,0,0"/>
+            </StackPanel>
+        </DockPanel>
+
+        <!-- Filters -->
+        <Border Grid.Row="1" Background="#1C1F2E" CornerRadius="10"
+                Padding="16" Margin="0,0,0,12">
+            <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
+                <!-- Search -->
+                <StackPanel Margin="0,0,16,0">
+                    <TextBlock Text="Qidirish" Style="{StaticResource LabelText}" Margin="0,0,0,4"/>
+                    <TextBox x:Name="TxtSearch" Style="{StaticResource FilterInput}"
+                             Width="200"/>
+                </StackPanel>
+
+                <!-- Date From -->
+                <StackPanel Margin="0,0,12,0">
+                    <TextBlock Text="Boshlanish sanasi" Style="{StaticResource LabelText}" Margin="0,0,0,4"/>
+                    <DatePicker x:Name="DpFrom" Style="{StaticResource FilterDatePicker}"
+                                Width="150"/>
+                </StackPanel>
+
+                <!-- Date To -->
+                <StackPanel Margin="0,0,16,0">
+                    <TextBlock Text="Tugash sanasi" Style="{StaticResource LabelText}" Margin="0,0,0,4"/>
+                    <DatePicker x:Name="DpTo" Style="{StaticResource FilterDatePicker}"
+                                Width="150"/>
+                </StackPanel>
+
+                <!-- Search Button -->
+                <Button Content="Qidirish" Style="{StaticResource ActionButton}"
+                        Click="BtnSearch_Click" VerticalAlignment="Bottom" Margin="0,0,8,0"/>
+
+                <!-- Reset Button -->
+                <Button Content="Tozalash" Click="BtnReset_Click"
+                        VerticalAlignment="Bottom"
+                        Background="#374151" Foreground="#D1D5DB"
+                        FontFamily="Segoe UI" FontSize="13"
+                        Padding="16,8" BorderThickness="0" Cursor="Hand">
+                    <Button.Template>
+                        <ControlTemplate TargetType="Button">
+                            <Border x:Name="Bd" Background="{TemplateBinding Background}"
+                                    CornerRadius="6" Padding="{TemplateBinding Padding}">
+                                <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                            </Border>
+                            <ControlTemplate.Triggers>
+                                <Trigger Property="IsMouseOver" Value="True">
+                                    <Setter TargetName="Bd" Property="Background" Value="#4B5563"/>
+                                </Trigger>
+                            </ControlTemplate.Triggers>
+                        </ControlTemplate>
+                    </Button.Template>
+                </Button>
+            </StackPanel>
+        </Border>
+
+        <!-- Data Table -->
+        <Border Grid.Row="2" Background="#1C1F2E" CornerRadius="10" Padding="2">
+            <DataGrid x:Name="DgReport"
+                      AutoGenerateColumns="False"
+                      IsReadOnly="True"
+                      MouseDoubleClick="DgReport_MouseDoubleClick"
+                      Cursor="Hand"
+                      Background="Transparent"
+                      BorderThickness="0"
+                      GridLinesVisibility="Horizontal"
+                      HorizontalGridLinesBrush="#2D3348"
+                      RowBackground="#1C1F2E"
+                      AlternatingRowBackground="#222638"
+                      HeadersVisibility="Column"
+                      CanUserResizeRows="False"
+                      SelectionMode="Single"
+                      FontFamily="Segoe UI"
+                      FontSize="13"
+                      Foreground="#E5E7EB">
+
+                <DataGrid.ColumnHeaderStyle>
+                    <Style TargetType="DataGridColumnHeader">
+                        <Setter Property="Background" Value="#161929"/>
+                        <Setter Property="Foreground" Value="#9CA3AF"/>
+                        <Setter Property="FontFamily" Value="Segoe UI Semibold"/>
+                        <Setter Property="FontSize" Value="12"/>
+                        <Setter Property="Padding" Value="12,10"/>
+                        <Setter Property="BorderBrush" Value="#2D3348"/>
+                        <Setter Property="BorderThickness" Value="0,0,0,1"/>
+                    </Style>
+                </DataGrid.ColumnHeaderStyle>
+
+                <DataGrid.CellStyle>
+                    <Style TargetType="DataGridCell">
+                        <Setter Property="Padding" Value="12,8"/>
+                        <Setter Property="BorderThickness" Value="0"/>
+                        <Setter Property="Template">
+                            <Setter.Value>
+                                <ControlTemplate TargetType="DataGridCell">
+                                    <Border Padding="{TemplateBinding Padding}"
+                                            Background="{TemplateBinding Background}">
+                                        <ContentPresenter VerticalAlignment="Center"/>
+                                    </Border>
+                                </ControlTemplate>
+                            </Setter.Value>
+                        </Setter>
+                        <Style.Triggers>
+                            <Trigger Property="IsSelected" Value="True">
+                                <Setter Property="Background" Value="#2563EB"/>
+                                <Setter Property="Foreground" Value="White"/>
+                            </Trigger>
+                        </Style.Triggers>
+                    </Style>
+                </DataGrid.CellStyle>
+
+                <DataGrid.RowStyle>
+                    <Style TargetType="DataGridRow">
+                        <Style.Triggers>
+                            <Trigger Property="IsMouseOver" Value="True">
+                                <Setter Property="Background" Value="#262A3E"/>
+                            </Trigger>
+                        </Style.Triggers>
+                    </Style>
+                </DataGrid.RowStyle>
+
+                <DataGrid.Columns>
+                    <DataGridTextColumn Header="#" Binding="{Binding UserId}" Width="60"/>
+                    <DataGridTextColumn Header="F.I.O" Binding="{Binding UserName}" Width="*"/>
+                    <DataGridTextColumn Header="Telefon" Binding="{Binding UserPhone}" Width="160"/>
+                    <DataGridTextColumn Header="Harakat" Binding="{Binding Event}" Width="100"/>
+                    <DataGridTextColumn Header="Shartnomalar" Binding="{Binding Contracts}" Width="120"/>
+                </DataGrid.Columns>
+            </DataGrid>
+        </Border>
+
+        <!-- Status Bar -->
+        <Border Grid.Row="3" Background="#1C1F2E" CornerRadius="8"
+                Padding="16,8" Margin="0,12,0,0">
+            <DockPanel>
+                <TextBlock x:Name="TxtStatus" Text="Tayyor"
+                           Foreground="#6B7280" FontFamily="Segoe UI" FontSize="12"/>
+                <TextBlock x:Name="TxtCount" Text=""
+                           Foreground="#6B7280" FontFamily="Segoe UI" FontSize="12"
+                           HorizontalAlignment="Right" DockPanel.Dock="Right"/>
+            </DockPanel>
+        </Border>
+    </Grid>
+</Window>
