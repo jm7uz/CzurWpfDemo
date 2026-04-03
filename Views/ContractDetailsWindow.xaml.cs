@@ -116,9 +116,12 @@ public partial class ContractDetailsWindow : Window
     {
         if (DgContracts.SelectedItem is ContractItem item)
         {
-            var docsWindow = new DocumentsWindow(item);
-            docsWindow.Owner = this;
-            docsWindow.ShowDialog();
+            var scannerWindow = new MainWindow(item);
+            scannerWindow.Owner = this;
+            scannerWindow.ShowDialog();
+
+            // Oynani yopgandan keyin ma'lumotlarni yangilash
+            _ = LoadDataAsync();
         }
     }
 }

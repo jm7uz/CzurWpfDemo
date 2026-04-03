@@ -93,20 +93,126 @@
         </Grid.RowDefinitions>
 
         <!-- Header -->
-        <StackPanel Grid.Row="0" Margin="0,0,0,16">
-            <TextBlock Text="CZUR ET24 Pro" FontFamily="Segoe UI Light"
-                       FontSize="28" Foreground="#F3F4F6"/>
-        </StackPanel>
+        <Grid Grid.Row="0" Margin="0,0,0,16">
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="*"/>
+                <ColumnDefinition Width="Auto"/>
+            </Grid.ColumnDefinitions>
+
+            <StackPanel Grid.Column="0">
+                <TextBlock Text="CZUR ET24 Pro" FontFamily="Segoe UI Light"
+                           FontSize="28" Foreground="#F3F4F6"/>
+                <TextBlock x:Name="TxtContractInfo" Text=""
+                           FontFamily="Segoe UI"
+                           FontSize="13"
+                           Foreground="#9CA3AF"
+                           Margin="0,4,0,0"
+                           Visibility="Collapsed"/>
+            </StackPanel>
+
+            <!-- O'ng yuqori burchak - Filial qidiruvi -->
+            <StackPanel Grid.Column="1" VerticalAlignment="Center" Visibility="Collapsed" x:Name="BranchFilterPanel">
+                <TextBlock Text="Filial qidiruvi:" Style="{StaticResource LabelText}"
+                           Margin="0,0,0,4"/>
+                <Grid>
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="*"/>
+                        <ColumnDefinition Width="Auto"/>
+                    </Grid.ColumnDefinitions>
+
+                    <!-- Qidiruv TextBox -->
+                    <TextBox x:Name="TxtBranchSearch"
+                             Grid.Column="0"
+                             Width="180"
+                             Background="#1C1F2E"
+                             Foreground="#F3F4F6"
+                             BorderBrush="#374151"
+                             FontFamily="Segoe UI"
+                             FontSize="13"
+                             Padding="10,6"
+                             Margin="0,0,8,0"
+                             TextChanged="TxtBranchSearch_TextChanged">
+                        <TextBox.Style>
+                            <Style TargetType="TextBox">
+                                <Setter Property="BorderThickness" Value="1"/>
+                                <Style.Triggers>
+                                    <Trigger Property="IsFocused" Value="True">
+                                        <Setter Property="BorderBrush" Value="#3B82F6"/>
+                                    </Trigger>
+                                </Style.Triggers>
+                            </Style>
+                        </TextBox.Style>
+                    </TextBox>
+
+                    <!-- Filiallar ComboBox (dropdown) -->
+                    <ComboBox x:Name="CmbBranch"
+                              Grid.Column="1"
+                              Width="200"
+                              Background="#1C1F2E"
+                              Foreground="#F3F4F6"
+                              BorderBrush="#374151"
+                              FontFamily="Segoe UI"
+                              FontSize="13"
+                              Padding="10,6"
+                              SelectionChanged="CmbBranch_SelectionChanged"
+                              IsEditable="False">
+                        <ComboBoxItem Content="Barcha filiallar" IsSelected="True"/>
+                    </ComboBox>
+                </Grid>
+            </StackPanel>
+        </Grid>
 
         <!-- Main Content -->
         <Grid Grid.Row="1">
             <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="Auto"/>
+                <!-- Sidebar -->
                 <ColumnDefinition Width="*"/>
+                <!-- Camera Preview -->
                 <ColumnDefinition Width="280"/>
+                <!-- Right Panel -->
             </Grid.ColumnDefinitions>
 
+            <!-- Sidebar (Hujjat turlari) -->
+            <Border x:Name="SidebarPanel" Grid.Column="0"
+                    Style="{StaticResource CardBorder}"
+                    Margin="0,0,12,0"
+                    Width="200"
+                    Visibility="Collapsed">
+                <Grid>
+                    <Grid.RowDefinitions>
+                        <RowDefinition Height="Auto"/>
+                        <RowDefinition Height="*"/>
+                    </Grid.RowDefinitions>
+
+                    <TextBlock Grid.Row="0" Text="📋 Hujjat Turlari"
+                               Style="{StaticResource LabelText}"
+                               Margin="0,0,0,12" FontSize="13" FontWeight="SemiBold"/>
+
+                    <ScrollViewer Grid.Row="1" VerticalScrollBarVisibility="Auto">
+                        <WrapPanel x:Name="SidebarCardsPanel" Orientation="Vertical"/>
+                    </ScrollViewer>
+                </Grid>
+            </Border>
+
+            <!-- Sidebar Toggle Button -->
+            <Button x:Name="BtnToggleSidebar"
+                    Grid.Column="1"
+                    Content="◀"
+                    Width="30" Height="60"
+                    VerticalAlignment="Top"
+                    HorizontalAlignment="Left"
+                    Margin="12,100,0,0"
+                    Background="#1C1F2E"
+                    Foreground="#9CA3AF"
+                    BorderThickness="0"
+                    Cursor="Hand"
+                    FontSize="16"
+                    Click="BtnToggleSidebar_Click"
+                    Visibility="Collapsed"/>
+
             <!-- Camera Preview -->
-            <Border Grid.Column="0" Style="{StaticResource CardBorder}" Margin="0,0,12,0">
+            <Border Grid.Column="1" Style="{StaticResource CardBorder}" Margin="0,0,12,0">
                 <Grid>
                     <Grid.RowDefinitions>
                         <RowDefinition Height="Auto"/>
@@ -186,7 +292,7 @@
             </Border>
 
             <!-- Right Panel -->
-            <StackPanel Grid.Column="1">
+            <StackPanel Grid.Column="2">
 
                 <!-- Device Info -->
                 <Border Style="{StaticResource CardBorder}" Margin="0,0,0,12">

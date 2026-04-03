@@ -39,4 +39,32 @@ public class ApiService
 
         return JsonSerializer.Deserialize<T>(responseJson, _jsonOptions);
     }
+
+    public static async Task<bool> PostMultipartAsync(string endpoint, MultipartFormDataContent content)
+    {
+        try
+        {
+            var response = await _client.PostAsync(BaseUrl + endpoint, content);
+            return response.IsSuccessStatusCode;
+        }
+        catch
+        {
+            return false;
+        }
+    }
+
+    public static async Task<T?> PostMultipartAsync<T>(string endpoint, MultipartFormDataContent content)
+    {
+        try
+        {
+            var response = await _client.PostAsync(BaseUrl + endpoint, content);
+            var responseJson = await response.Content.ReadAsStringAsync();
+
+            return JsonSerializer.Deserialize<T>(responseJson, _jsonOptions);
+        }
+        catch
+        {
+            return default;
+        }
+    }
 }

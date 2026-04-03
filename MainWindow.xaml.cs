@@ -12,6 +12,8 @@ using System.Windows.Media.Imaging;
 using OpenCvSharp;
 using PdfSharpCore.Pdf;
 using PdfSharpCore.Drawing;
+using CzurWpfDemo.Models;
+using CzurWpfDemo.Services;
 
 namespace CzurWpfDemo
 {
@@ -28,6 +30,13 @@ namespace CzurWpfDemo
     /// </summary>
     public partial class MainWindow : System.Windows.Window
     {
+        // ─── Shartnoma ma'lumotlari ──────────────────────────────────
+        private readonly ContractItem? _contract;
+        private ContractDocumentType? _selectedDocumentType;
+        private List<ContractDocumentType>? _allDocumentTypes;
+        private List<BranchItem>? _allBranches;
+        private BranchItem? _selectedBranch;
+
         // ─── Kamera holati ───────────────────────────────────────────
         private VideoCapture? _capture;
         private CancellationTokenSource? _cts;
@@ -57,10 +66,305 @@ namespace CzurWpfDemo
             (1536, 1152),   // CZUR Skan rejimi — 20fps
         };
 
-        public MainWindow()
+        public MainWindow(ContractItem? contract = null)
         {
             InitializeComponent();
-            Log("CZUR ET24 Pro WPF Demo yuklandi. Qurilmani USB orqali ulang.");
+            _contract = contract;
+
+            if (_contract != null)
+            {
+                Loaded += MainWindow_Loaded;
+            }
+        }
+
+        private async void MainWindow_Loaded(object sender, RoutedEventArgs e)
+        {
+            if (_contract != null)
+            {
+                Log($"Shartnoma yuklandi: {_contract.DocumentNumber} - {_contract.Name}");
+
+                // Shartnoma ma'lumotlarini ko'rsatish
+                TxtContractInfo.Text = $"Shartnoma: {_contract.DocumentNumber} | Mijoz: {_contract.Name} | Tel: {_contract.TelNumber}";
+                TxtContractInfo.Visibility = Visibility.Visible;
+
+                // Sidebar va filtrni ko'rsatish
+                SidebarPanel.Visibility = Visibility.Visible;
+                BtnToggleSidebar.Visibility = Visibility.Visible;
+                BranchFilterPanel.Visibility = Visibility.Visible;
+
+                // Filiallar va hujjat turlarini yuklash
+                await LoadBranchesAsync();
+                await LoadDocumentTypesAsync();
+            }
+            else
+            {
+                Log("CZUR ET24 Pro WPF Demo yuklandi. Qurilmani USB orqali ulang.");
+            }
+        }
+
+        // ─── Filiallarni Yuklash ──────────────────────────────────────
+        private async Task LoadBranchesAsync()
+        {
+            try
+            {
+                _allBranches = await BranchService.GetAllBranchesAsync();
+
+                if (_allBranches == null || _allBranches.Count == 0)
+                {
+                    Log("⚠ Filiallar yuklanmadi");
+                    return;
+                }
+
+                // ComboBox ga filiallarni qo'shish
+                PopulateBranchComboBox(_allBranches);
+
+                Log($"✅ {_allBranches.Count} ta filial yuklandi");
+            }
+            catch (Exception ex)
+            {
+                Log($"❌ Filiallar yuklanmadi: {ex.Message}");
+            }
+        }
+
+        private void PopulateBranchComboBox(List<BranchItem> branches)
+        {
+            CmbBranch.Items.Clear();
+
+            // "Barcha filiallar" opsiyasini qo'shish
+            var allItem = new System.Windows.Controls.ComboBoxItem
+            {
+                Content = "Barcha filiallar",
+                Tag = null
+            };
+            CmbBranch.Items.Add(allItem);
+
+            // Filiallarni qo'shish
+            foreach (var branch in branches)
+            {
+                var item = new System.Windows.Controls.ComboBoxItem
+                {
+                    Content = branch.Name,
+                    Tag = branch
+                };
+                CmbBranch.Items.Add(item);
+            }
+
+            // Birinchi elementni tanlash
+            CmbBranch.SelectedIndex = 0;
+        }
+
+        // ─── Filial Qidiruvi ──────────────────────────────────────────
+        private void TxtBranchSearch_TextChanged(object sender, System.Windows.Controls.TextChangedEventArgs e)
+        {
+            if (_allBranches == null || _allBranches.Count == 0)
+                return;
+
+            var searchText = TxtBranchSearch.Text.Trim().ToLower();
+
+            if (string.IsNullOrWhiteSpace(searchText))
+            {
+                // Qidiruv bo'sh - barcha filiallarni ko'rsatish
+                PopulateBranchComboBox(_allBranches);
+            }
+            else
+            {
+                // Qidiruv bo'yicha filtrlash
+                var filtered = _allBranches.Where(b =>
+                    b.Name.ToLower().Contains(searchText) ||
+                    b.StateName.ToLower().Contains(searchText) ||
+                    b.RegionName.ToLower().Contains(searchText) ||
+                    b.Address.ToLower().Contains(searchText)
+                ).ToList();
+
+                PopulateBranchComboBox(filtered);
+
+                if (filtered.Count > 0)
+                {
+                    Log($"🔍 {filtered.Count} ta filial topildi");
+                }
+                else
+                {
+                    Log("🔍 Hech narsa topilmadi");
+                }
+            }
+        }
+
+        // ─── Hujjat Turlarini Yuklash ─────────────────────────────────
+        private async Task LoadDocumentTypesAsync()
+        {
+            try
+            {
+                _allDocumentTypes = await ContractDocumentService.GetAllAsync();
+
+                if (_allDocumentTypes == null || _allDocumentTypes.Count == 0)
+                {
+                    Log("⚠ Hujjat turlari yuklanmadi");
+                    return;
+                }
+
+                // Sidebar ga kartalarni qo'shish
+                PopulateSidebarCards();
+                Log($"✅ {_allDocumentTypes.Count} ta hujjat turi yuklandi");
+            }
+            catch (Exception ex)
+            {
+                Log($"❌ Hujjat turlari yuklanmadi: {ex.Message}");
+            }
+        }
+
+        private void PopulateSidebarCards()
+        {
+            if (_allDocumentTypes == null) return;
+
+            SidebarCardsPanel.Children.Clear();
+
+            foreach (var docType in _allDocumentTypes)
+            {
+                var card = CreateDocumentCard(docType);
+                SidebarCardsPanel.Children.Add(card);
+            }
+        }
+
+        private System.Windows.Controls.Border CreateDocumentCard(ContractDocumentType docType)
+        {
+            var bgColor = ParseColor(docType.Color);
+
+            var card = new System.Windows.Controls.Border
+            {
+                Width = 160,
+                Height = 140,
+                CornerRadius = new System.Windows.CornerRadius(10),
+                Margin = new System.Windows.Thickness(8),
+                Cursor = System.Windows.Input.Cursors.Hand,
+                Background = new System.Windows.Media.SolidColorBrush(bgColor),
+                BorderThickness = new System.Windows.Thickness(2),
+                BorderBrush = new System.Windows.Media.SolidColorBrush(System.Windows.Media.Color.FromRgb(55, 65, 81)),
+                Tag = docType
+            };
+
+            var stack = new System.Windows.Controls.StackPanel
+            {
+                VerticalAlignment = VerticalAlignment.Center,
+                HorizontalAlignment = System.Windows.HorizontalAlignment.Center,
+                Margin = new System.Windows.Thickness(10)
+            };
+
+            // Rasm (ikonka)
+            try
+            {
+                var img = new System.Windows.Controls.Image
+                {
+                    Width = 32,
+                    Height = 32,
+                    HorizontalAlignment = System.Windows.HorizontalAlignment.Center,
+                    Margin = new System.Windows.Thickness(0, 0, 0, 8),
+                    Source = new BitmapImage(new Uri(docType.Svg, UriKind.Absolute))
+                };
+                stack.Children.Add(img);
+            }
+            catch
+            {
+                // Rasm yuklanmasa o'tkazib yuboramiz
+            }
+
+            // Hujjat nomi
+            var nameText = new System.Windows.Controls.TextBlock
+            {
+                Text = docType.PunktName,
+                FontFamily = new System.Windows.Media.FontFamily("Segoe UI Semibold"),
+                FontSize = 12,
+                Foreground = new System.Windows.Media.SolidColorBrush(System.Windows.Media.Color.FromRgb(17, 24, 39)),
+                TextWrapping = System.Windows.TextWrapping.Wrap,
+                TextAlignment = System.Windows.TextAlignment.Center,
+                HorizontalAlignment = System.Windows.HorizontalAlignment.Center
+            };
+            stack.Children.Add(nameText);
+
+            card.Child = stack;
+
+            // Bosilganda tanlash
+            card.MouseLeftButtonDown += (s, e) => SelectDocumentType(docType, card);
+
+            return card;
+        }
+
+        private void SelectDocumentType(ContractDocumentType docType, System.Windows.Controls.Border card)
+        {
+            _selectedDocumentType = docType;
+
+            // Barcha kartalarni oddiy rangga qaytarish
+            foreach (var child in SidebarCardsPanel.Children)
+            {
+                if (child is System.Windows.Controls.Border border)
+                {
+                    border.BorderBrush = new System.Windows.Media.SolidColorBrush(System.Windows.Media.Color.FromRgb(55, 65, 81));
+                    border.BorderThickness = new System.Windows.Thickness(2);
+                }
+            }
+
+            // Tanlangan kartani belgilash (yashil chegara)
+            card.BorderBrush = new System.Windows.Media.SolidColorBrush(System.Windows.Media.Color.FromRgb(16, 185, 129));
+            card.BorderThickness = new System.Windows.Thickness(3);
+
+            Log($"📋 Tanlandi: {docType.PunktName}");
+        }
+
+        private static System.Windows.Media.Color ParseColor(string colorStr)
+        {
+            try
+            {
+                var hex = colorStr.Replace("0x", "").Replace("0X", "");
+                if (hex.Length == 8)
+                {
+                    byte a = Convert.ToByte(hex[..2], 16);
+                    byte r = Convert.ToByte(hex[2..4], 16);
+                    byte g = Convert.ToByte(hex[4..6], 16);
+                    byte b = Convert.ToByte(hex[6..8], 16);
+                    return System.Windows.Media.Color.FromArgb(a, r, g, b);
+                }
+            }
+            catch { }
+
+            return System.Windows.Media.Color.FromRgb(28, 31, 46);
+        }
+
+        // ─── Filial Tanlash ───────────────────────────────────────────
+        private void CmbBranch_SelectionChanged(object sender, System.Windows.Controls.SelectionChangedEventArgs e)
+        {
+            if (CmbBranch.SelectedItem is System.Windows.Controls.ComboBoxItem selectedItem)
+            {
+                _selectedBranch = selectedItem.Tag as BranchItem;
+
+                if (_selectedBranch != null)
+                {
+                    Log($"📍 Filial tanlandi: {_selectedBranch.Name}");
+                }
+                else
+                {
+                    Log("📍 Barcha filiallar tanlandi");
+                }
+            }
+        }
+
+        // ─── Sidebar Ochish/Yopish ────────────────────────────────────
+        private void BtnToggleSidebar_Click(object sender, RoutedEventArgs e)
+        {
+            if (SidebarPanel.Visibility == Visibility.Visible)
+            {
+                // Sidebar yopish
+                SidebarPanel.Visibility = Visibility.Collapsed;
+                BtnToggleSidebar.Content = "▶";
+                BtnToggleSidebar.Margin = new System.Windows.Thickness(0, 100, 0, 0);
+                BtnToggleSidebar.HorizontalAlignment = System.Windows.HorizontalAlignment.Left;
+            }
+            else
+            {
+                // Sidebar ochish
+                SidebarPanel.Visibility = Visibility.Visible;
+                BtnToggleSidebar.Content = "◀";
+                BtnToggleSidebar.Margin = new System.Windows.Thickness(12, 100, 0, 0);
+                BtnToggleSidebar.HorizontalAlignment = System.Windows.HorizontalAlignment.Left;
+            }
         }
 
         // ─── Kamerani Boshlash ────────────────────────────────────────
@@ -346,8 +650,19 @@ namespace CzurWpfDemo
         }
 
         // ─── Rasm Olish (Live Crop asosida srazi qirqish) ───────────────────
-        private void BtnCapture_Click(object sender, RoutedEventArgs e)
+        private async void BtnCapture_Click(object sender, RoutedEventArgs e)
         {
+            // Shartnoma rejimida bo'lsa, hujjat turini tekshirish
+            if (_contract != null && _selectedDocumentType == null)
+            {
+                MessageBox.Show(
+                    "Iltimos, chap tomondagi sidebar dan hujjat turini tanlang!",
+                    "Hujjat turi tanlanmagan",
+                    MessageBoxButton.OK,
+                    MessageBoxImage.Warning);
+                return;
+            }
+
             Mat captureMat;
             lock (_matLock)
             {
@@ -389,27 +704,91 @@ namespace CzurWpfDemo
 
             using var enhanced = EnhanceDocumentClarity(warped);
 
-            // Original tahrirlangan qog'ozni xotiraga olish
-            _scannedPages.Add(enhanced.Clone());
-            _captureCount++;
+            // Shartnoma rejimida API ga yuklash
+            if (_contract != null && _selectedDocumentType != null)
+            {
+                Log($"📤 API ga yuklanmoqda: {_selectedDocumentType.PunktName}...");
+                BtnCapture.IsEnabled = false;
 
+                try
+                {
+                    // Mat ni PNG byte[] ga aylantirish
+                    var success = Cv2.ImEncode(".png", enhanced, out var buffer);
+                    if (!success)
+                    {
+                        Log("❌ Rasmni PNG formatga o'girish xatosi");
+                        return;
+                    }
+
+                    var fileName = $"{_contract.DocumentNumber}_{_selectedDocumentType.Id}_{DateTime.Now:yyyyMMdd_HHmmss}.png";
+
+                    var uploaded = await ContractDocumentService.UploadDocumentAsync(
+                        _contract.DocumentNumber,
+                        _selectedDocumentType.Id,
+                        buffer,
+                        fileName);
+
+                    if (uploaded)
+                    {
+                        Log($"✅ {_selectedDocumentType.PunktName} muvaffaqiyatli yuklandi!");
+
+                        // Tanlangan kartani yashil rangga bo'yash
+                        foreach (var child in SidebarCardsPanel.Children)
+                        {
+                            if (child is System.Windows.Controls.Border border &&
+                                border.Tag is ContractDocumentType docType &&
+                                docType.Id == _selectedDocumentType.Id)
+                            {
+                                border.Background = new System.Windows.Media.SolidColorBrush(
+                                    System.Windows.Media.Color.FromRgb(16, 185, 129)); // yashil
+                                break;
+                            }
+                        }
+
+                        // Keyingi hujjat turini tanlash
+                        _selectedDocumentType = null;
+                    }
+                    else
+                    {
+                        Log("❌ API ga yuklashda xatolik yuz berdi");
+                        MessageBox.Show(
+                            "Hujjatni yuklashda xatolik!\nTarmoq ulanishini tekshiring.",
+                            "Xatolik",
+                            MessageBoxButton.OK,
+                            MessageBoxImage.Error);
+                    }
+                }
+                catch (Exception ex)
+                {
+                    Log($"❌ Yuklash xatosi: {ex.Message}");
+                }
+                finally
+                {
+                    BtnCapture.IsEnabled = true;
+                }
+            }
+            else
+            {
+                // Oddiy rejim - xotiraga saqlash
+                _scannedPages.Add(enhanced.Clone());
+                _captureCount++;
+                BtnSave.IsEnabled = true;
+                Log($"📸 Skan #{_captureCount} kesildi va xotiraga qo'shildi.");
+            }
+
+            // Preview ni ko'rsatish
             var bmp = MatToBitmapSource(enhanced);
             bmp.Freeze();
             CapturedImage.Source = bmp;
             TxtCaptureCount.Text = _captureCount.ToString();
-            BtnSave.IsEnabled = true;
 
             captureMat.Dispose();
-            warped.Dispose();
-            enhanced.Dispose();
-            
+
             // Orqaga avto rejimga qaytarib qo'yish (agar qo'lda tahrirlashda tursa)
             if (_isManualCropMode)
             {
-                BtnManualCrop_Click(null, null);
+                BtnManualCrop_Click(this, new RoutedEventArgs());
             }
-
-            Log($"📸 Skan #{_captureCount} kesildi va hujjatga qo'shildi.");
         }
 
         // ─── Manual Crop (Nuqtalarni qo'lda surish rejimini yoqish/o'chirish) ───────────
@@ -676,7 +1055,16 @@ namespace CzurWpfDemo
 
         private void Log(string message)
         {
-            TxtLog.Text = $"[{DateTime.Now:HH:mm:ss}] {message}";
+            // XAML elementlari yuklanganligini tekshirish
+            if (TxtLog != null)
+            {
+                TxtLog.Text = $"[{DateTime.Now:HH:mm:ss}] {message}";
+            }
+            else
+            {
+                // Debug uchun Console'ga yozish
+                Console.WriteLine($"[{DateTime.Now:HH:mm:ss}] {message}");
+            }
         }
 
         protected override async void OnClosed(EventArgs e)
