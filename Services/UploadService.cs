@@ -95,6 +95,32 @@ public class UploadService
     }
 
     /// <summary>
+    /// PDF faylni base64 formatida upload/base64 ga yuklash (hajm cheklovsiz)
+    /// </summary>
+    public static async Task<UploadResponse?> UploadPdfBase64Async(string pdfFilePath, int contractId, string clientName)
+    {
+        try
+        {
+            var fileBytes = await File.ReadAllBytesAsync(pdfFilePath);
+            var base64 = Convert.ToBase64String(fileBytes);
+
+            var request = new Models.UploadBase64Request
+            {
+                ContractId = contractId,
+                ClientName = clientName,
+                File       = $"data:application/pdf;base64,{base64}"
+            };
+
+            return await ApiService.PostAsync<UploadResponse>("upload/base64", request);
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"❌ Base64 yuklashda xatolik: {ex.Message}");
+            return null;
+        }
+    }
+
+    /// <summary>
     /// Faylning PDF ekanligini tekshirish
     /// </summary>
     public static bool IsPdfFile(string filePath)

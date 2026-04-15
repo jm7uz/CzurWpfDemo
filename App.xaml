@@ -1,9 +1,709 @@
-﻿<Application x:Class="CzurWpfDemo.App"
+<Application x:Class="CzurWpfDemo.App"
              xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
              xmlns:local="clr-namespace:CzurWpfDemo"
              StartupUri="Views/LoginWindow.xaml">
     <Application.Resources>
-         
+
+        <!-- ─── Matn stillari ──────────────────────────────────────── -->
+        <Style x:Key="LabelText" TargetType="TextBlock">
+            <Setter Property="Foreground" Value="#9CA3AF"/>
+            <Setter Property="FontFamily" Value="Segoe UI"/>
+            <Setter Property="FontSize" Value="12"/>
+        </Style>
+
+        <Style x:Key="ValueText" TargetType="TextBlock">
+            <Setter Property="Foreground" Value="#F3F4F6"/>
+            <Setter Property="FontFamily" Value="Segoe UI Semibold"/>
+            <Setter Property="FontSize" Value="14"/>
+        </Style>
+
+        <!-- ─── Karta ramkasi ───────────────────────────────────────── -->
+        <Style x:Key="CardBorder" TargetType="Border">
+            <Setter Property="Background" Value="#1C1F2E"/>
+            <Setter Property="CornerRadius" Value="12"/>
+            <Setter Property="Padding" Value="16"/>
+        </Style>
+
+        <!-- ─── Filtr inputs ────────────────────────────────────────── -->
+        <Style x:Key="FilterInput" TargetType="TextBox">
+            <Setter Property="Background"       Value="#1C1F2E"/>
+            <Setter Property="Foreground"       Value="#F3F4F6"/>
+            <Setter Property="BorderBrush"      Value="#374151"/>
+            <Setter Property="BorderThickness"  Value="1"/>
+            <Setter Property="FontFamily"       Value="Segoe UI"/>
+            <Setter Property="FontSize"         Value="13"/>
+            <Setter Property="Padding"          Value="10,0"/>
+            <Setter Property="Height"           Value="36"/>
+            <Setter Property="VerticalContentAlignment" Value="Center"/>
+            <Setter Property="CaretBrush"       Value="#F3F4F6"/>
+            <Setter Property="SelectionBrush"   Value="#2563EB"/>
+            <Setter Property="OverridesDefaultStyle" Value="True"/>
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="TextBox">
+                        <Border x:Name="Bd"
+                                Background="{TemplateBinding Background}"
+                                BorderBrush="{TemplateBinding BorderBrush}"
+                                BorderThickness="{TemplateBinding BorderThickness}"
+                                CornerRadius="6">
+                            <ScrollViewer x:Name="PART_ContentHost"
+                                          Margin="{TemplateBinding Padding}"
+                                          Background="Transparent"
+                                          Focusable="False"
+                                          HorizontalScrollBarVisibility="Hidden"
+                                          VerticalScrollBarVisibility="Hidden"
+                                          VerticalAlignment="Center"
+                                          TextElement.Foreground="{TemplateBinding Foreground}"/>
+                        </Border>
+                        <ControlTemplate.Triggers>
+                            <Trigger Property="IsMouseOver" Value="True">
+                                <Setter TargetName="Bd" Property="BorderBrush" Value="#4B5563"/>
+                            </Trigger>
+                            <Trigger Property="IsFocused" Value="True">
+                                <Setter TargetName="Bd" Property="BorderBrush" Value="#2563EB"/>
+                            </Trigger>
+                            <Trigger Property="IsEnabled" Value="False">
+                                <Setter TargetName="Bd" Property="Opacity" Value="0.5"/>
+                            </Trigger>
+                        </ControlTemplate.Triggers>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+
+        <!-- ─── DatePicker tam dark-theme stillari ──────────────────── -->
+
+        <!-- DatePickerTextBox: ichki matn + watermark -->
+        <Style TargetType="DatePickerTextBox">
+            <Setter Property="Foreground"       Value="#F3F4F6"/>
+            <Setter Property="CaretBrush"       Value="#F3F4F6"/>
+            <Setter Property="SelectionBrush"   Value="#2563EB"/>
+            <Setter Property="FontFamily"       Value="Segoe UI"/>
+            <Setter Property="FontSize"         Value="13"/>
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="DatePickerTextBox">
+                        <Grid VerticalAlignment="Center">
+                            <VisualStateManager.VisualStateGroups>
+                                <VisualStateGroup x:Name="WatermarkStates">
+                                    <VisualState x:Name="Unwatermarked"/>
+                                    <VisualState x:Name="Watermarked">
+                                        <Storyboard>
+                                            <DoubleAnimation Storyboard.TargetName="PART_Watermark"
+                                                             Storyboard.TargetProperty="Opacity"
+                                                             To="1" Duration="0"/>
+                                            <DoubleAnimation Storyboard.TargetName="PART_ContentHost"
+                                                             Storyboard.TargetProperty="Opacity"
+                                                             To="0" Duration="0"/>
+                                        </Storyboard>
+                                    </VisualState>
+                                </VisualStateGroup>
+                            </VisualStateManager.VisualStateGroups>
+                            <ContentControl x:Name="PART_Watermark"
+                                            Foreground="#6B7280" FontFamily="Segoe UI"
+                                            FontSize="13" Opacity="0"
+                                            IsHitTestVisible="False"
+                                            VerticalAlignment="Center"/>
+                            <ScrollViewer x:Name="PART_ContentHost"
+                                          Background="Transparent"
+                                          VerticalAlignment="Center"
+                                          HorizontalScrollBarVisibility="Hidden"
+                                          VerticalScrollBarVisibility="Hidden"/>
+                        </Grid>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+
+        <!-- CalendarDayButton: har bir kun -->
+        <Style TargetType="CalendarDayButton">
+            <Setter Property="FontFamily"                Value="Segoe UI"/>
+            <Setter Property="FontSize"                  Value="12"/>
+            <Setter Property="Foreground"                Value="#D1D5DB"/>
+            <Setter Property="MinWidth"                  Value="30"/>
+            <Setter Property="MinHeight"                 Value="30"/>
+            <Setter Property="HorizontalContentAlignment" Value="Center"/>
+            <Setter Property="VerticalContentAlignment"  Value="Center"/>
+            <Setter Property="Padding"                   Value="0"/>
+            <Setter Property="Cursor"                    Value="Hand"/>
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="CalendarDayButton">
+                        <Grid>
+                            <VisualStateManager.VisualStateGroups>
+                                <VisualStateGroup x:Name="CommonStates">
+                                    <VisualState x:Name="Normal"/>
+                                    <VisualState x:Name="MouseOver">
+                                        <Storyboard>
+                                            <DoubleAnimation Storyboard.TargetName="HoverBg"
+                                                             Storyboard.TargetProperty="Opacity"
+                                                             To="1" Duration="0:0:0.08"/>
+                                        </Storyboard>
+                                    </VisualState>
+                                    <VisualState x:Name="Pressed">
+                                        <Storyboard>
+                                            <DoubleAnimation Storyboard.TargetName="HoverBg"
+                                                             Storyboard.TargetProperty="Opacity"
+                                                             To="0.6" Duration="0"/>
+                                        </Storyboard>
+                                    </VisualState>
+                                    <VisualState x:Name="Disabled">
+                                        <Storyboard>
+                                            <DoubleAnimation Storyboard.TargetName="Content"
+                                                             Storyboard.TargetProperty="Opacity"
+                                                             To="0.2" Duration="0"/>
+                                        </Storyboard>
+                                    </VisualState>
+                                </VisualStateGroup>
+                                <VisualStateGroup x:Name="SelectionStates">
+                                    <VisualState x:Name="Unselected"/>
+                                    <VisualState x:Name="Selected">
+                                        <Storyboard>
+                                            <DoubleAnimation Storyboard.TargetName="SelectedBg"
+                                                             Storyboard.TargetProperty="Opacity"
+                                                             To="1" Duration="0:0:0.1"/>
+                                        </Storyboard>
+                                    </VisualState>
+                                </VisualStateGroup>
+                                <VisualStateGroup x:Name="CalendarButtonFocusStates">
+                                    <VisualState x:Name="CalendarButtonUnfocused"/>
+                                    <VisualState x:Name="CalendarButtonFocused">
+                                        <Storyboard>
+                                            <DoubleAnimation Storyboard.TargetName="FocusRing"
+                                                             Storyboard.TargetProperty="Opacity"
+                                                             To="1" Duration="0"/>
+                                        </Storyboard>
+                                    </VisualState>
+                                </VisualStateGroup>
+                                <VisualStateGroup x:Name="ActiveStates">
+                                    <VisualState x:Name="Active"/>
+                                    <VisualState x:Name="Inactive">
+                                        <Storyboard>
+                                            <DoubleAnimation Storyboard.TargetName="Content"
+                                                             Storyboard.TargetProperty="Opacity"
+                                                             To="0.25" Duration="0"/>
+                                        </Storyboard>
+                                    </VisualState>
+                                </VisualStateGroup>
+                                <VisualStateGroup x:Name="DayStates">
+                                    <VisualState x:Name="RegularDay"/>
+                                    <VisualState x:Name="Today">
+                                        <Storyboard>
+                                            <DoubleAnimation Storyboard.TargetName="TodayRing"
+                                                             Storyboard.TargetProperty="Opacity"
+                                                             To="1" Duration="0"/>
+                                        </Storyboard>
+                                    </VisualState>
+                                </VisualStateGroup>
+                                <VisualStateGroup x:Name="BlackoutDayStates">
+                                    <VisualState x:Name="NormalDay"/>
+                                    <VisualState x:Name="BlackoutDay">
+                                        <Storyboard>
+                                            <DoubleAnimation Storyboard.TargetName="Content"
+                                                             Storyboard.TargetProperty="Opacity"
+                                                             To="0.12" Duration="0"/>
+                                        </Storyboard>
+                                    </VisualState>
+                                </VisualStateGroup>
+                            </VisualStateManager.VisualStateGroups>
+
+                            <Border x:Name="TodayRing"  CornerRadius="15" Opacity="0"
+                                    BorderBrush="#3B82F6" BorderThickness="1.5" Background="Transparent"/>
+                            <Border x:Name="HoverBg"    CornerRadius="15" Opacity="0" Background="#2D3348"/>
+                            <Border x:Name="SelectedBg" CornerRadius="15" Opacity="0" Background="#2563EB"/>
+                            <Border x:Name="FocusRing"  CornerRadius="15" Opacity="0"
+                                    BorderBrush="#60A5FA" BorderThickness="1" Background="Transparent"/>
+
+                            <ContentPresenter x:Name="Content"
+                                              HorizontalAlignment="Center"
+                                              VerticalAlignment="Center"/>
+                        </Grid>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+
+        <!-- CalendarButton: oy/yil ko'rinishidagi tugmalar -->
+        <Style TargetType="CalendarButton">
+            <Setter Property="FontFamily"                Value="Segoe UI"/>
+            <Setter Property="FontSize"                  Value="12"/>
+            <Setter Property="Foreground"                Value="#D1D5DB"/>
+            <Setter Property="MinWidth"                  Value="40"/>
+            <Setter Property="MinHeight"                 Value="42"/>
+            <Setter Property="HorizontalContentAlignment" Value="Center"/>
+            <Setter Property="VerticalContentAlignment"  Value="Center"/>
+            <Setter Property="Cursor"                    Value="Hand"/>
+            <Setter Property="Padding"                   Value="2"/>
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="CalendarButton">
+                        <Grid>
+                            <VisualStateManager.VisualStateGroups>
+                                <VisualStateGroup x:Name="CommonStates">
+                                    <VisualState x:Name="Normal"/>
+                                    <VisualState x:Name="MouseOver">
+                                        <Storyboard>
+                                            <DoubleAnimation Storyboard.TargetName="HoverBg"
+                                                             Storyboard.TargetProperty="Opacity"
+                                                             To="1" Duration="0:0:0.08"/>
+                                        </Storyboard>
+                                    </VisualState>
+                                    <VisualState x:Name="Pressed">
+                                        <Storyboard>
+                                            <DoubleAnimation Storyboard.TargetName="HoverBg"
+                                                             Storyboard.TargetProperty="Opacity"
+                                                             To="0.6" Duration="0"/>
+                                        </Storyboard>
+                                    </VisualState>
+                                    <VisualState x:Name="Disabled">
+                                        <Storyboard>
+                                            <DoubleAnimation Storyboard.TargetName="Content"
+                                                             Storyboard.TargetProperty="Opacity"
+                                                             To="0.3" Duration="0"/>
+                                        </Storyboard>
+                                    </VisualState>
+                                </VisualStateGroup>
+                                <VisualStateGroup x:Name="SelectionStates">
+                                    <VisualState x:Name="Unselected"/>
+                                    <VisualState x:Name="Selected">
+                                        <Storyboard>
+                                            <DoubleAnimation Storyboard.TargetName="SelectedBg"
+                                                             Storyboard.TargetProperty="Opacity"
+                                                             To="1" Duration="0:0:0.1"/>
+                                        </Storyboard>
+                                    </VisualState>
+                                </VisualStateGroup>
+                                <VisualStateGroup x:Name="ActiveStates">
+                                    <VisualState x:Name="Active"/>
+                                    <VisualState x:Name="Inactive">
+                                        <Storyboard>
+                                            <DoubleAnimation Storyboard.TargetName="Content"
+                                                             Storyboard.TargetProperty="Opacity"
+                                                             To="0.3" Duration="0"/>
+                                        </Storyboard>
+                                    </VisualState>
+                                </VisualStateGroup>
+                                <VisualStateGroup x:Name="CalendarButtonFocusStates">
+                                    <VisualState x:Name="CalendarButtonUnfocused"/>
+                                    <VisualState x:Name="CalendarButtonFocused">
+                                        <Storyboard>
+                                            <DoubleAnimation Storyboard.TargetName="FocusRing"
+                                                             Storyboard.TargetProperty="Opacity"
+                                                             To="1" Duration="0"/>
+                                        </Storyboard>
+                                    </VisualState>
+                                </VisualStateGroup>
+                            </VisualStateManager.VisualStateGroups>
+
+                            <Border x:Name="HoverBg"    CornerRadius="6" Opacity="0" Background="#2D3348"/>
+                            <Border x:Name="SelectedBg" CornerRadius="6" Opacity="0" Background="#1D4ED8"/>
+                            <Border x:Name="FocusRing"  CornerRadius="6" Opacity="0"
+                                    BorderBrush="#60A5FA" BorderThickness="1" Background="Transparent"/>
+
+                            <ContentPresenter x:Name="Content"
+                                              HorizontalAlignment="Center"
+                                              VerticalAlignment="Center"
+                                              Margin="{TemplateBinding Padding}"/>
+                        </Grid>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+
+        <!-- CalendarItem: sarlavha (◀ Oy Yil ▶) + kunlar paneli -->
+        <Style TargetType="CalendarItem">
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="CalendarItem">
+                        <ControlTemplate.Resources>
+                            <DataTemplate x:Key="{x:Static CalendarItem.DayTitleTemplateResourceKey}">
+                                <TextBlock Text="{Binding}"
+                                           FontFamily="Segoe UI" FontSize="11"
+                                           FontWeight="SemiBold" Foreground="#6B7280"
+                                           HorizontalAlignment="Center"
+                                           Margin="0,2,0,5"/>
+                            </DataTemplate>
+                        </ControlTemplate.Resources>
+
+                        <Grid x:Name="PART_Root">
+                            <Grid.RowDefinitions>
+                                <RowDefinition Height="36"/>
+                                <RowDefinition Height="*"/>
+                            </Grid.RowDefinitions>
+
+                            <!-- ◀  Oy Yil  ▶ -->
+                            <Grid Grid.Row="0">
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="28"/>
+                                    <ColumnDefinition Width="*"/>
+                                    <ColumnDefinition Width="28"/>
+                                </Grid.ColumnDefinitions>
+
+                                <Button x:Name="PART_PreviousButton" Grid.Column="0"
+                                        Focusable="False" Cursor="Hand"
+                                        VerticalAlignment="Center" HorizontalAlignment="Center">
+                                    <Button.Template>
+                                        <ControlTemplate TargetType="Button">
+                                            <Border x:Name="Bd" CornerRadius="5"
+                                                    Background="Transparent" Padding="5,4">
+                                                <TextBlock Text="&#x276E;" FontSize="10"
+                                                           Foreground="#9CA3AF"
+                                                           HorizontalAlignment="Center"
+                                                           VerticalAlignment="Center"/>
+                                            </Border>
+                                            <ControlTemplate.Triggers>
+                                                <Trigger Property="IsMouseOver" Value="True">
+                                                    <Setter TargetName="Bd" Property="Background" Value="#2D3348"/>
+                                                </Trigger>
+                                            </ControlTemplate.Triggers>
+                                        </ControlTemplate>
+                                    </Button.Template>
+                                </Button>
+
+                                <Button x:Name="PART_HeaderButton" Grid.Column="1"
+                                        Cursor="Hand" VerticalAlignment="Center"
+                                        HorizontalAlignment="Center">
+                                    <Button.Template>
+                                        <ControlTemplate TargetType="Button">
+                                            <Border x:Name="Bd" CornerRadius="6"
+                                                    Background="Transparent" Padding="8,4">
+                                                <ContentPresenter HorizontalAlignment="Center"
+                                                                  VerticalAlignment="Center"
+                                                                  TextBlock.Foreground="#F3F4F6"
+                                                                  TextBlock.FontFamily="Segoe UI Semibold"
+                                                                  TextBlock.FontSize="13"/>
+                                            </Border>
+                                            <ControlTemplate.Triggers>
+                                                <Trigger Property="IsMouseOver" Value="True">
+                                                    <Setter TargetName="Bd" Property="Background" Value="#2D3348"/>
+                                                </Trigger>
+                                            </ControlTemplate.Triggers>
+                                        </ControlTemplate>
+                                    </Button.Template>
+                                </Button>
+
+                                <Button x:Name="PART_NextButton" Grid.Column="2"
+                                        Focusable="False" Cursor="Hand"
+                                        VerticalAlignment="Center" HorizontalAlignment="Center">
+                                    <Button.Template>
+                                        <ControlTemplate TargetType="Button">
+                                            <Border x:Name="Bd" CornerRadius="5"
+                                                    Background="Transparent" Padding="5,4">
+                                                <TextBlock Text="&#x276F;" FontSize="10"
+                                                           Foreground="#9CA3AF"
+                                                           HorizontalAlignment="Center"
+                                                           VerticalAlignment="Center"/>
+                                            </Border>
+                                            <ControlTemplate.Triggers>
+                                                <Trigger Property="IsMouseOver" Value="True">
+                                                    <Setter TargetName="Bd" Property="Background" Value="#2D3348"/>
+                                                </Trigger>
+                                            </ControlTemplate.Triggers>
+                                        </ControlTemplate>
+                                    </Button.Template>
+                                </Button>
+                            </Grid>
+
+                            <!-- Kunlar / Oylar grid -->
+                            <Grid x:Name="PART_MonthView" Grid.Row="1"
+                                  Visibility="Visible" Margin="0,0,0,2"/>
+                            <Grid x:Name="PART_YearView"  Grid.Row="1"
+                                  Visibility="Hidden"  Margin="0,0,0,2"/>
+                        </Grid>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+
+        <!-- Calendar: popup ichidagi taqvim -->
+        <Style TargetType="Calendar">
+            <Setter Property="Background"       Value="#141728"/>
+            <Setter Property="Foreground"       Value="#F3F4F6"/>
+            <Setter Property="BorderBrush"      Value="#2D3555"/>
+            <Setter Property="BorderThickness"  Value="1"/>
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="Calendar">
+                        <Border Background="{TemplateBinding Background}"
+                                BorderBrush="{TemplateBinding BorderBrush}"
+                                BorderThickness="{TemplateBinding BorderThickness}"
+                                CornerRadius="10" Padding="10,8,10,10">
+                            <Border.Effect>
+                                <DropShadowEffect Color="Black" Opacity="0.55"
+                                                  BlurRadius="28" ShadowDepth="8"/>
+                            </Border.Effect>
+                            <CalendarItem x:Name="PART_CalendarItem"
+                                          Background="Transparent"
+                                          BorderThickness="0"/>
+                        </Border>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+
+        <!-- FilterDatePicker: asosiy sana tanlash widget -->
+        <Style x:Key="FilterDatePicker" TargetType="DatePicker">
+            <Setter Property="Background"       Value="#1C1F2E"/>
+            <Setter Property="Foreground"       Value="#F3F4F6"/>
+            <Setter Property="BorderBrush"      Value="#374151"/>
+            <Setter Property="BorderThickness"  Value="1"/>
+            <Setter Property="FontFamily"       Value="Segoe UI"/>
+            <Setter Property="FontSize"         Value="13"/>
+            <Setter Property="Height"           Value="36"/>
+            <Setter Property="IsTodayHighlighted" Value="True"/>
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="DatePicker">
+                        <Border x:Name="Root"
+                                Background="{TemplateBinding Background}"
+                                BorderBrush="{TemplateBinding BorderBrush}"
+                                BorderThickness="{TemplateBinding BorderThickness}"
+                                CornerRadius="6">
+                            <Grid>
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="*"/>
+                                    <ColumnDefinition Width="34"/>
+                                </Grid.ColumnDefinitions>
+
+                                <DatePickerTextBox x:Name="PART_TextBox"
+                                                   Grid.Column="0"
+                                                   Background="Transparent"
+                                                   Foreground="{TemplateBinding Foreground}"
+                                                   FontFamily="{TemplateBinding FontFamily}"
+                                                   FontSize="{TemplateBinding FontSize}"
+                                                   BorderThickness="0"
+                                                   Margin="10,0,0,0"
+                                                   VerticalAlignment="Center"/>
+
+                                <!-- Taqvim tugmasi -->
+                                <Button x:Name="PART_Button"
+                                        Grid.Column="1"
+                                        Focusable="False"
+                                        Background="Transparent"
+                                        BorderThickness="0"
+                                        Cursor="Hand">
+                                    <Button.Template>
+                                        <ControlTemplate TargetType="Button">
+                                            <Border x:Name="BtnBd" Background="Transparent"
+                                                    CornerRadius="0,5,5,0" Padding="0">
+                                                <TextBlock x:Name="Icon"
+                                                           Text="&#xE787;"
+                                                           FontFamily="Segoe MDL2 Assets"
+                                                           FontSize="14"
+                                                           Foreground="#6B7280"
+                                                           HorizontalAlignment="Center"
+                                                           VerticalAlignment="Center"/>
+                                            </Border>
+                                            <ControlTemplate.Triggers>
+                                                <Trigger Property="IsMouseOver" Value="True">
+                                                    <Setter TargetName="BtnBd" Property="Background" Value="#252840"/>
+                                                    <Setter TargetName="Icon"  Property="Foreground" Value="#9CA3AF"/>
+                                                </Trigger>
+                                            </ControlTemplate.Triggers>
+                                        </ControlTemplate>
+                                    </Button.Template>
+                                </Button>
+
+                                <Popup x:Name="PART_Popup"
+                                       Grid.Column="0"
+                                       AllowsTransparency="True"
+                                       Placement="Bottom"
+                                       PlacementTarget="{Binding ElementName=Root}"
+                                       VerticalOffset="4"
+                                       StaysOpen="False"/>
+                            </Grid>
+                        </Border>
+                        <ControlTemplate.Triggers>
+                            <Trigger Property="IsMouseOver" Value="True">
+                                <Setter TargetName="Root" Property="BorderBrush" Value="#4B5563"/>
+                            </Trigger>
+                            <Trigger Property="IsKeyboardFocusWithin" Value="True">
+                                <Setter TargetName="Root" Property="BorderBrush" Value="#2563EB"/>
+                            </Trigger>
+                            <Trigger Property="IsEnabled" Value="False">
+                                <Setter TargetName="Root" Property="Opacity" Value="0.45"/>
+                            </Trigger>
+                        </ControlTemplate.Triggers>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+
+        <!-- ─── Tugma stillari ──────────────────────────────────────── -->
+        <Style x:Key="PrimaryButton" TargetType="Button">
+            <Setter Property="Background" Value="#2563EB"/>
+            <Setter Property="Foreground" Value="White"/>
+            <Setter Property="FontFamily" Value="Segoe UI Semibold"/>
+            <Setter Property="FontSize" Value="13"/>
+            <Setter Property="Padding" Value="18,10"/>
+            <Setter Property="BorderThickness" Value="0"/>
+            <Setter Property="Cursor" Value="Hand"/>
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="Button">
+                        <Border x:Name="Bd" Background="{TemplateBinding Background}"
+                                CornerRadius="8" Padding="{TemplateBinding Padding}">
+                            <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                        </Border>
+                        <ControlTemplate.Triggers>
+                            <Trigger Property="IsMouseOver" Value="True">
+                                <Setter TargetName="Bd" Property="Background" Value="#1D4ED8"/>
+                            </Trigger>
+                            <Trigger Property="IsEnabled" Value="False">
+                                <Setter TargetName="Bd" Property="Background" Value="#374151"/>
+                                <Setter Property="Foreground" Value="#6B7280"/>
+                            </Trigger>
+                        </ControlTemplate.Triggers>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+
+        <Style x:Key="DangerButton" TargetType="Button">
+            <Setter Property="Background" Value="#DC2626"/>
+            <Setter Property="Foreground" Value="White"/>
+            <Setter Property="FontFamily" Value="Segoe UI Semibold"/>
+            <Setter Property="FontSize" Value="13"/>
+            <Setter Property="Padding" Value="18,10"/>
+            <Setter Property="BorderThickness" Value="0"/>
+            <Setter Property="Cursor" Value="Hand"/>
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="Button">
+                        <Border x:Name="Bd" Background="{TemplateBinding Background}"
+                                CornerRadius="8" Padding="{TemplateBinding Padding}">
+                            <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                        </Border>
+                        <ControlTemplate.Triggers>
+                            <Trigger Property="IsMouseOver" Value="True">
+                                <Setter TargetName="Bd" Property="Background" Value="#B91C1C"/>
+                            </Trigger>
+                            <Trigger Property="IsEnabled" Value="False">
+                                <Setter TargetName="Bd" Property="Background" Value="#374151"/>
+                                <Setter Property="Foreground" Value="#6B7280"/>
+                            </Trigger>
+                        </ControlTemplate.Triggers>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+
+        <Style x:Key="SuccessButton" TargetType="Button">
+            <Setter Property="Background" Value="#059669"/>
+            <Setter Property="Foreground" Value="White"/>
+            <Setter Property="FontFamily" Value="Segoe UI Semibold"/>
+            <Setter Property="FontSize" Value="13"/>
+            <Setter Property="Padding" Value="18,10"/>
+            <Setter Property="BorderThickness" Value="0"/>
+            <Setter Property="Cursor" Value="Hand"/>
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="Button">
+                        <Border x:Name="Bd" Background="{TemplateBinding Background}"
+                                CornerRadius="8" Padding="{TemplateBinding Padding}">
+                            <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                        </Border>
+                        <ControlTemplate.Triggers>
+                            <Trigger Property="IsMouseOver" Value="True">
+                                <Setter TargetName="Bd" Property="Background" Value="#047857"/>
+                            </Trigger>
+                            <Trigger Property="IsEnabled" Value="False">
+                                <Setter TargetName="Bd" Property="Background" Value="#374151"/>
+                                <Setter Property="Foreground" Value="#6B7280"/>
+                            </Trigger>
+                        </ControlTemplate.Triggers>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+
+        <Style x:Key="ActionButton" TargetType="Button">
+            <Setter Property="Background" Value="#2563EB"/>
+            <Setter Property="Foreground" Value="White"/>
+            <Setter Property="FontFamily" Value="Segoe UI Semibold"/>
+            <Setter Property="FontSize" Value="13"/>
+            <Setter Property="Padding" Value="16,8"/>
+            <Setter Property="BorderThickness" Value="0"/>
+            <Setter Property="Cursor" Value="Hand"/>
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="Button">
+                        <Border x:Name="Bd" Background="{TemplateBinding Background}"
+                                CornerRadius="6" Padding="{TemplateBinding Padding}">
+                            <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                        </Border>
+                        <ControlTemplate.Triggers>
+                            <Trigger Property="IsMouseOver" Value="True">
+                                <Setter TargetName="Bd" Property="Background" Value="#1D4ED8"/>
+                            </Trigger>
+                            <Trigger Property="IsEnabled" Value="False">
+                                <Setter TargetName="Bd" Property="Background" Value="#374151"/>
+                                <Setter Property="Foreground" Value="#6B7280"/>
+                            </Trigger>
+                        </ControlTemplate.Triggers>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+
+        <Style x:Key="SecondaryButton" TargetType="Button">
+            <Setter Property="Background" Value="#374151"/>
+            <Setter Property="Foreground" Value="#D1D5DB"/>
+            <Setter Property="FontFamily" Value="Segoe UI"/>
+            <Setter Property="FontSize" Value="13"/>
+            <Setter Property="Padding" Value="16,8"/>
+            <Setter Property="BorderThickness" Value="0"/>
+            <Setter Property="Cursor" Value="Hand"/>
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="Button">
+                        <Border x:Name="Bd" Background="{TemplateBinding Background}"
+                                CornerRadius="6" Padding="{TemplateBinding Padding}">
+                            <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                        </Border>
+                        <ControlTemplate.Triggers>
+                            <Trigger Property="IsMouseOver" Value="True">
+                                <Setter TargetName="Bd" Property="Background" Value="#4B5563"/>
+                            </Trigger>
+                        </ControlTemplate.Triggers>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+
+        <Style x:Key="PaginationButton" TargetType="Button">
+            <Setter Property="Background" Value="#1C1F2E"/>
+            <Setter Property="Foreground" Value="#D1D5DB"/>
+            <Setter Property="FontFamily" Value="Segoe UI"/>
+            <Setter Property="FontSize" Value="12"/>
+            <Setter Property="Padding" Value="10,6"/>
+            <Setter Property="BorderThickness" Value="1"/>
+            <Setter Property="BorderBrush" Value="#374151"/>
+            <Setter Property="Cursor" Value="Hand"/>
+            <Setter Property="MinWidth" Value="36"/>
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="Button">
+                        <Border x:Name="Bd" Background="{TemplateBinding Background}"
+                                BorderBrush="{TemplateBinding BorderBrush}"
+                                BorderThickness="{TemplateBinding BorderThickness}"
+                                CornerRadius="6" Padding="{TemplateBinding Padding}">
+                            <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                        </Border>
+                        <ControlTemplate.Triggers>
+                            <Trigger Property="IsMouseOver" Value="True">
+                                <Setter TargetName="Bd" Property="Background" Value="#2563EB"/>
+                            </Trigger>
+                            <Trigger Property="IsEnabled" Value="False">
+                                <Setter TargetName="Bd" Property="Background" Value="#111318"/>
+                                <Setter Property="Foreground" Value="#4B5563"/>
+                            </Trigger>
+                        </ControlTemplate.Triggers>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+
     </Application.Resources>
 </Application>

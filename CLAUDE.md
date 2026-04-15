@@ -19,36 +19,50 @@ Target framework is `net10.0-windows`. Solution file uses the `.slnx` format (VS
 
 ### Application Flow
 
-The application starts at `LoginWindow` (Views/LoginWindow.xaml.cs), authenticates via `AuthService`, and routes users based on role:
-- **Superadmin** → `ReportWindow` (contract reporting/search interface)
-- **Regular users** → `MainWindow` (CZUR scanner interface in standalone mode)
+`App.xaml` sets `StartupUri="Views/LoginWindow.xaml"`. `LoginWindow` authenticates via `AuthService` and routes by `user.Role`:
+- `"superadmin"` → `AppShell` hosting `ReportPage`
+- anything else → `AppShell` hosting `ScannerPage` (standalone mode)
 
-From `ReportWindow`, users can drill down:
-- Select user → `ContractDetailsWindow` (list of contracts with search/date filters and pagination)
-- Double-click contract → `MainWindow` (scanner with contract context, displays collapsible sidebar with document type cards)
+`AppShell` is a single host window (`ContentControl` named `ContentArea`) with a stack-based navigation system:
+- `AppShell.Current.Navigate(page)` — pushes current page onto `_navStack`, shows new page; awaits `ScannerPage.StopCameraAsync()` before switching if scanner is active
+- `AppShell.Current.GoBack()` — pops the stack; if returning to `ContractDetailsPage`, calls `RefreshAsync()` to reload data
+
+### Page Navigation
+
+All views are `UserControl` pages hosted inside `AppShell`:
+- `ReportPage` — user selection grid (superadmin only); double-click → `Navigate(new ContractDetailsPage(userId, userName))`
+- `ContractDetailsPage(userId, userName)` — paginated DataGrid of contracts; double-click → `Navigate(new ScannerPage(contractItem))`; "Scan" button → `Navigate(new BarcodeScanPage())`
+- `BarcodeScanPage` — live camera barcode scanner; on successful scan calls `GetContractService.ValidateAsync()` then `SearchAllAsync()`, then → `Navigate(new ScannerPage(contract))`; stops camera via `Unloaded` event (not via `AppShell`)
+- `ScannerPage` — scanner (replaces old `MainWindow`); works in standalone mode (no arg) or contract mode (with `ContractItem`)
 
 ### Core Modules
 
-**1. Scanner Module (MainWindow.xaml.cs)**
-Single-window, code-behind design. No MVVM. All state and logic in `MainWindow.xaml.cs`. Supports two modes:
+**1. Scanner Module (Views/ScannerPage.xaml.cs)**
+`UserControl`-based, code-behind design. No MVVM. Supports two modes:
 - **Standalone mode** (no contract) — traditional scanner with local PDF export
-- **Contract mode** (with ContractItem) — displays sidebar with document types, uploads each scan directly to API
+- **Contract mode** (with `ContractItem`) — displays sidebar with document types, uploads each scan directly to API
 
-**Threading:** Background `Task` runs `CaptureLoop()`, grabs frames from `VideoCapture` (DirectShow/UVC), converts to frozen `BitmapSource`, dispatches to UI via `Dispatcher.InvokeAsync`. Access to `_lastMat` is guarded by `lock (_matLock)`.
+**Threading:** Background `Task` runs `CaptureLoop()`, grabs frames from `VideoCapture` (DirectShow/UVC), converts to frozen `BitmapSource`, dispatches to UI via `Dispatcher.InvokeAsync`. Access to `_lastMat` is guarded by `lock (_matLock)`. `StopCameraAsync()` is awaited by `AppShell` before navigation to guarantee the camera task is fully stopped.
+
+**Camera resolutions** (defined in `_resolutions` array, currently hardcoded to 1920×1080):
+- 5696×4272 — 24MP max quality (1-2 fps)
+- 4000×3000 — 12MP high quality
+- 3072×1728 — presentation mode (~12 fps)
+- 1920×1080 — standard HD
+- 1536×1152 — scan mode (~20 fps)
 
 **Scanning pipeline:**
-1. **Capture** — `VideoCapture` with DirectShow backend reads frames from CZUR camera (USB/UVC). Camera index and resolution are hardcoded (index 0, 1920×1080) since ComboBox selectors were removed.
+1. **Capture** — `VideoCapture` with DirectShow backend reads frames from CZUR camera (USB/UVC). Camera index 0, 1920×1080 are hardcoded; change `_resolutions` index and camera index in `BtnStart_Click` to switch.
 2. **Corner detection** — `FindDocumentCorners()`: BilateralFilter → Canny → MorphClose → FindContours → ApproxPolyDP. Falls back to `MinAreaRect` if no 4-point polygon found, then to a 10%-margin rectangle if no contour is large enough.
-3. **Manual crop mode** — overlay `Polygon` + four draggable `Thumb` handles on a `Canvas` let users adjust corners. After capture, auto-reverts to automatic detection mode.
+3. **Manual crop mode** — overlay `Polygon` + four draggable `Thumb` handles on a `Canvas`; auto-reverts to automatic detection mode after capture.
 4. **Capture & enhance** — perspective warp via `GetPerspectiveTransform`/`WarpPerspective`, then `EnhanceDocumentClarity()` (Unsharp Mask + CLAHE on LAB L-channel).
 5. **Upload or store:**
    - **Contract mode**: encodes Mat as PNG bytes, uploads via `ContractDocumentService.UploadDocumentAsync()` with document_number + contract_document_id
    - **Standalone mode**: stores Mat in `_scannedPages` for later PDF export via `BtnSave_Click`
 
 **Key state:**
-- `_contract` — optional ContractItem (if null, standalone mode)
+- `_contract` — optional `ContractItem` (if null, standalone mode)
 - `_selectedDocumentType` — active document type selected from sidebar (contract mode only)
-- `_allDocumentTypes` — list of all document types loaded via API
 - `_capture` — OpenCV camera handle
 - `_scannedPages` (`List<Mat>`) — in-memory page buffer (standalone mode only)
 - `_cropPoints[4]` — current document corner coordinates
@@ -56,50 +70,41 @@ Single-window, code-behind design. No MVVM. All state and logic in `MainWindow.x
 
 **Sidebar (contract mode only):**
 - `SidebarPanel` — collapsible left panel with document type cards (200px width)
-- `BtnToggleSidebar` — toggle button (▶/◀) to show/hide sidebar
 - Cards are color-coded per document type, turn green after successful upload
 - Clicking a card selects it as active document type for next scan
 
-**Branch search & filter (contract mode only):**
-- `TxtBranchSearch` — TextBox in top-right header for live search (180px width)
-- `CmbBranch` — ComboBox in top-right header (200px width) populated with all branches via `BranchService.GetAllBranchesAsync()`
-- Search filters by branch name, state name, region name, or address
-- First option is always "Barcha filiallar" (all branches)
-- `TxtBranchSearch_TextChanged` dynamically filters ComboBox items as user types
-- Selection stored in `_selectedBranch` (currently for display only, not used in upload logic)
+**2. Services (Services/)**
 
-**2. Contract/Document Management (Views/)**
+**AuthService** — stateless; stores `Token` and `CurrentUser` as static properties; calls `auth/login` and `auth/me` endpoints.
 
-**AuthService** (Services/AuthService.cs) — stateless authentication, stores `Token` and `CurrentUser` as static properties, calls `auth/login` and `auth/me` endpoints.
+**ApiService** — shared `HttpClient` with snake_case JSON serialization (`JsonNamingPolicy.SnakeCaseLower`), base URL `http://10.100.104.104:9505/api/`, Bearer token header via `SetToken()`. **Note:** `GetAsync`/`PostAsync` have no try/catch — only `PostMultipartAsync` overloads do. Callers must handle exceptions.
 
-**ApiService** (Services/ApiService.cs) — shared HTTP client with snake_case JSON serialization, base URL `http://10.100.104.104:9505/api/`, Bearer token header injection via `SetToken()`.
+**ReportService** — `POST report/by/user` with optional search, userId, and date range.
 
-**ContractService** (Services/ContractService.cs) — fetches paginated contract details for a user via `report/details/{userId}`.
+**ContractService** — `GET report/details/{userId}` with pagination and filters. `ContractItem` has `ConstantDetails` and `Details` (`List<ContractDetailEntry>`).
 
-**ContractDocumentService** (Services/ContractDocumentService.cs) — retrieves all document types via `contract-document/all`, uploads scanned documents via `contract-document/upload` (multipart form with file, document_number, contract_document_id).
+**ContractDocumentService** — `GET contract-document/all` for document types; `POST contract-document/upload` (multipart: file, document_number, contract_document_id).
 
-**UploadService** (Services/UploadService.cs) — uploads PDF files to `upload` endpoint with `file` (PDF only) + `branch` name. Returns JSON with uploaded file URL. Includes validation helpers: `IsPdfFile()`, `GetFileSizeMB()`. See UPLOAD_USAGE.md for examples.
+**GetContractService** — `POST get/contract` (`ValidateAsync`) to confirm a barcode/document_number exists; `POST get/all?perPage=10&page=1` (`SearchAllAsync`) to fetch the full `ContractItem` with `constant_details`. Used exclusively by `BarcodeScanPage`.
 
-**BranchService** (Services/BranchService.cs) — retrieves branches/filials via `branchs?perPage=X&page=Y` with POST body `{search: null}`. Methods: `GetAllAsync()` (paginated), `GetBranchListAsync()` (single page), `GetAllBranchesAsync()` (all pages combined). Returns branch details including name, address, state, region, and constant document details.
+**ConstantDocumentDetailService** — `POST constant-document-detail/store` with branchId, contractDocumentId, file path, and photoCount.
 
-**Window hierarchy:**
-- `LoginWindow` → authenticates, routes by role
-- `ReportWindow` → user selection grid (superadmin only)
-- `ContractDetailsWindow` → DataGrid of contracts with search, date range filters, pagination
-- `MainWindow` (contract mode) → scanner window with sidebar showing document type cards; double-clicked from ContractDetailsWindow
+**UploadService** — uploads PDF to `upload` endpoint with file + branch name; returns file URL. Includes `IsPdfFile()` and `GetFileSizeMB()` helpers.
+
+**BranchService** — `POST branchs?perPage=X&page=Y` with `{search: null}`. `GetAllBranchesAsync()` fetches all pages combined.
 
 ### UI Layout
 
-**MainWindow.xaml** — Dark-themed 1100×750 window. Three-column layout:
-- **Left** (200px, collapsible): Sidebar with document type cards (visible only in contract mode)
+**AppShell** — 1300×750 host window (dark `#0F1117`), single `ContentControl` that swaps between pages.
+
+**Global styles** in `App.xaml.Resources` (available in all pages): `PrimaryButton`, `DangerButton`, `SuccessButton`, `ActionButton`, `SecondaryButton`, `PaginationButton`, `FilterInput`, `FilterDatePicker`, `CardBorder`, `LabelText`, `ValueText`.
+
+**ScannerPage** — three-column layout:
+- **Left** (200px, collapsible): Sidebar with document type cards (contract mode only)
 - **Center**: Camera preview with crop overlay inside `Viewbox > Grid > Canvas` stack
 - **Right** (280px): Status panel (FPS, capture count), thumbnail, save button
 
-Header shows contract info (document number, client name, phone) and branch filter ComboBox when in contract mode.
-
-Button styles (`PrimaryButton`, `DangerButton`, `SuccessButton`) defined inline in `Window.Resources`. Camera/resolution ComboBoxes are commented out in code but referenced in comments.
-
-All other windows follow similar dark theme with card-based layouts, inline button styles, and Uzbek UI text.
+All UI text is in Uzbek.
 
 ## Dependencies
 
@@ -109,6 +114,7 @@ All other windows follow similar dark theme with card-based layouts, inline butt
 | OpenCvSharp4.runtime.win | Native Windows OpenCV DLLs |
 | OpenCvSharp4.Extensions | Mat ↔ Bitmap conversion |
 | PdfSharpCore (1.3.67) | Multi-page PDF generation |
+| ZXing.Net (0.16.9) | Barcode decoding (EAN-13, Code128, QR, etc.) |
 
 No additional HTTP client libraries — uses built-in `System.Net.Http.HttpClient`.
 
@@ -117,7 +123,7 @@ No additional HTTP client libraries — uses built-in `System.Net.Http.HttpClien
 - **All code comments and UI text are in Uzbek**
 - The CZUR ET24 Pro must be connected via USB for the camera to work
 - `MatToBitmapSource` creates `BitmapSource` at 300 DPI (not 96) for higher-quality rendering
-- An older version of `BtnStart_Click` that read from ComboBoxes is commented out above the current implementation
 - API base URL is hardcoded in `ApiService.cs` — change for different environments
-- No validation/error handling for missing API responses in some places
 - Models use `Resoult` (typo) instead of `Result` to match API response structure
+- `AppShell.Navigate()` / `GoBack()` / `OnClosed()` all await `ScannerPage.StopCameraAsync()` before switching — but only check for `ScannerPage`, not `BarcodeScanPage`; `BarcodeScanPage` handles its own teardown via its `Unloaded` event
+- Barcode detection in `BarcodeScanPage` runs every 3rd frame off the UI thread; confirmed after 2 consecutive identical reads (`_barcodeHitCount >= 2`); tries normal + 90° + 270° rotations to handle portrait documents

@@ -1,35 +1,49 @@
 using System.Windows;
+using System.Windows.Controls;
 using System.Windows.Input;
 using CzurWpfDemo.Models;
 using CzurWpfDemo.Services;
 
 namespace CzurWpfDemo.Views;
 
-public partial class ContractDetailsWindow : Window
+public partial class ContractDetailsPage : UserControl
 {
     private readonly int _userId;
     private readonly string _userName;
     private int _currentPage = 1;
     private int _lastPage = 1;
+    private bool _initialized = false;
 
-    public ContractDetailsWindow(int userId, string userName)
+    public ContractDetailsPage(int userId, string userName)
     {
         InitializeComponent();
         _userId = userId;
         _userName = userName;
 
         TxtTitle.Text = $"{userName} — Shartnomalar";
-        TxtSubtitle.Text = $"Foydalanuvchi ID: {userId}";
+        //TxtSubtitle.Text = $"Foydalanuvchi ID: {userId}";
 
-        Loaded += ContractDetailsWindow_Loaded;
+        Loaded += ContractDetailsPage_Loaded;
     }
 
-    private async void ContractDetailsWindow_Loaded(object sender, RoutedEventArgs e)
+    private async void ContractDetailsPage_Loaded(object sender, RoutedEventArgs e)
     {
-        DpFrom.SelectedDate = new DateTime(DateTime.Now.Year, 1, 1);
-        DpTo.SelectedDate = DateTime.Now;
+        BtnBack.Visibility = AppShell.Current?.CanGoBack == true
+            ? Visibility.Visible : Visibility.Collapsed;
+
+        // Birinchi yuklanishda default sanalar, keyingi safar (orqaga qaytganda) eslab qoladi
+        if (!_initialized)
+        {
+            _initialized = true;
+            DpFrom.SelectedDate = new DateTime(DateTime.Now.Year, 1, 1);
+            DpTo.SelectedDate   = DateTime.Now;
+        }
+
         await LoadDataAsync();
     }
+
+    // AppShell tomonidan qaytilganda chaqiriladi
+    public Task RefreshAsync() => LoadDataAsync();
 
     private async void BtnSearch_Click(object sender, RoutedEventArgs e)
     {
@@ -109,19 +123,17 @@ public partial class ContractDetailsWindow : Window
 
     private void BtnBack_Click(object sender, RoutedEventArgs e)
     {
-        Close();
+        AppShell.Current?.GoBack();
+    }
+
+    private void BtnScan_Click(object sender, RoutedEventArgs e)
+    {
+        AppShell.Current?.Navigate(new BarcodeScanPage());
     }
 
     private void DgContracts_MouseDoubleClick(object sender, MouseButtonEventArgs e)
     {
         if (DgContracts.SelectedItem is ContractItem item)
-        {
-            var scannerWindow = new MainWindow(item);
-            scannerWindow.Owner = this;
-            scannerWindow.ShowDialog();
-
-            // Oynani yopgandan keyin ma'lumotlarni yangilash
-            _ = LoadDataAsync();
-        }
+            AppShell.Current?.Navigate(new ScannerPage(item));
     }
 }

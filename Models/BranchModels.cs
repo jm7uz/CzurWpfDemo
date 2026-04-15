@@ -25,11 +25,14 @@ public class BranchItem
 {
     public int Id { get; set; }
     public string Name { get; set; } = string.Empty;
-    public int StateId { get; set; }
+    public int? StateId { get; set; }
     public string StateName { get; set; } = string.Empty;
-    public int RegionId { get; set; }
+    public int? RegionId { get; set; }
     public string RegionName { get; set; } = string.Empty;
     public string Address { get; set; } = string.Empty;
+
+    // API "constantDocumentDetail" (camelCase) qaytaradi — JsonPropertyName bilan aniq ko'rsatilgan
+    [System.Text.Json.Serialization.JsonPropertyName("constantDocumentDetail")]
     public List<BranchConstantDocument>? ConstantDocumentDetail { get; set; }
 }
 

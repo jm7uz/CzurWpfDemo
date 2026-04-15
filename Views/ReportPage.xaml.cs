@@ -1,28 +1,34 @@
-using System.Collections.Generic;
 using System.Windows;
+using System.Windows.Controls;
 using System.Windows.Input;
 using CzurWpfDemo.Models;
 using CzurWpfDemo.Services;
 
 namespace CzurWpfDemo.Views;
 
-public partial class ReportWindow : Window
+public partial class ReportPage : UserControl
 {
-    public ReportWindow()
+    private bool _initialized = false;
+
+    public ReportPage()
     {
         InitializeComponent();
-        Loaded += ReportWindow_Loaded;
+        Loaded += ReportPage_Loaded;
     }
 
-    private async void ReportWindow_Loaded(object sender, RoutedEventArgs e)
+    private async void ReportPage_Loaded(object sender, RoutedEventArgs e)
     {
         var user = AuthService.CurrentUser;
         if (user != null)
-            TxtUserInfo.Text = $"{user.Name} — {user.Role}";
+            //TxtUserInfo.Text = $"{user.Name} — {user.Role}";
 
-        // Default sanalar: 1-yanvar dan bugunga
-        DpFrom.SelectedDate = new DateTime(DateTime.Now.Year, 1, 1);
-        DpTo.SelectedDate = DateTime.Now;
+        // Birinchi yuklanishda default sanalar, keyingi safar eslab qoladi
+        if (!_initialized)
+        {
+            _initialized = true;
+            DpFrom.SelectedDate = new DateTime(DateTime.Now.Year, 1, 1);
+            DpTo.SelectedDate   = DateTime.Now;
+        }
 
         await LoadReportAsync();
     }
@@ -75,10 +81,13 @@ public partial class ReportWindow : Window
     private void DgReport_MouseDoubleClick(object sender, MouseButtonEventArgs e)
     {
         if (DgReport.SelectedItem is ReportItem item)
-        {
-            var detailsWindow = new ContractDetailsWindow(item.UserId, item.UserName);
-            detailsWindow.Owner = this;
-            detailsWindow.ShowDialog();
-        }
+            AppShell.Current?.Navigate(new ContractDetailsPage(item.UserId, item.UserName));
+    }
+
+    private void BtnLogout_Click(object sender, RoutedEventArgs e)
+    {
+        var loginWindow = new LoginWindow();
+        loginWindow.Show();
+        AppShell.Current?.Close();
     }
 }
