@@ -29,7 +29,8 @@ public class ConstantDocumentDetailService
             File = filePath,
             PhotoCount = photoCount
         };
-        return await ApiService.PostAsync<ConstantDocumentDetailUpdateResponse>(
+        // Backend PUT metodini talab qiladi → PutAsync ishlatamiz
+        return await ApiService.PutAsync<ConstantDocumentDetailUpdateResponse>(
             $"contract-document-detail/update/{detailId}", request);
     }
 }

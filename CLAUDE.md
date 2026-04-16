@@ -13,6 +13,11 @@ dotnet build CzurWpfDemo.csproj
 dotnet run --project CzurWpfDemo.csproj
 ```
 
+To publish a self-contained `.exe`:
+```bash
+dotnet publish CzurWpfDemo.csproj -c Release -r win-x64 --self-contained true -p:PublishReadyToRun=true -o ./publish/CzurWpfDemo
+```
+
 Target framework is `net10.0-windows`. Solution file uses the `.slnx` format (VS 2022+). No test projects exist.
 
 ## Architecture
@@ -22,6 +27,7 @@ Target framework is `net10.0-windows`. Solution file uses the `.slnx` format (VS
 `App.xaml` sets `StartupUri="Views/LoginWindow.xaml"`. `LoginWindow` authenticates via `AuthService` and routes by `user.Role`:
 - `"superadmin"` → `AppShell` hosting `ReportPage`
 - anything else → `AppShell` hosting `ScannerPage` (standalone mode)
+- superadmin navigating to a contract's `ScannerPage` enters **admin mode** (`_isAdminMode = true`): starts in PDF view instead of camera, with a toggle button to switch to scan mode
 
 `AppShell` is a single host window (`ContentControl` named `ContentArea`) with a stack-based navigation system:
 - `AppShell.Current.Navigate(page)` — pushes current page onto `_navStack`, shows new page; awaits `ScannerPage.StopCameraAsync()` before switching if scanner is active
@@ -38,9 +44,10 @@ All views are `UserControl` pages hosted inside `AppShell`:
 ### Core Modules
 
 **1. Scanner Module (Views/ScannerPage.xaml.cs)**
-`UserControl`-based, code-behind design. No MVVM. Supports two modes:
+`UserControl`-based, code-behind design. No MVVM. Supports three modes:
 - **Standalone mode** (no contract) — traditional scanner with local PDF export
-- **Contract mode** (with `ContractItem`) — displays sidebar with document types, uploads each scan directly to API
+- **Contract mode** (with `ContractItem`, non-admin) — displays sidebar with document types, uploads each scan directly to API
+- **Admin mode** (superadmin + contract) — starts with WebView2 PDF viewer showing the selected card's PDF URL; toggle button switches to camera/scan mode and back
 
 **Threading:** Background `Task` runs `CaptureLoop()`, grabs frames from `VideoCapture` (DirectShow/UVC), converts to frozen `BitmapSource`, dispatches to UI via `Dispatcher.InvokeAsync`. Access to `_lastMat` is guarded by `lock (_matLock)`. `StopCameraAsync()` is awaited by `AppShell` before navigation to guarantee the camera task is fully stopped.
 
@@ -65,8 +72,12 @@ All views are `UserControl` pages hosted inside `AppShell`:
 - `_selectedDocumentType` — active document type selected from sidebar (contract mode only)
 - `_capture` — OpenCV camera handle
 - `_scannedPages` (`List<Mat>`) — in-memory page buffer (standalone mode only)
+- `_cardImages` (`Dictionary<int, List<Mat>>`) — per-card image buffer (contract mode); keyed by `ContractDocumentType.Id`
+- `_cardBorders`, `_cardCountBadges`, `_cardViewBtns`, `_cardReloadBtns` — UI element references for sidebar cards, populated during sidebar build
 - `_cropPoints[4]` — current document corner coordinates
 - `_isManualCropMode` — auto-detect vs. manual drag toggle
+- `_isAdminMode` — true when superadmin views a specific contract
+- `_isPdfViewMode` / `_pdfViewerReady` — PDF viewer toggle state (admin mode only)
 
 **Sidebar (contract mode only):**
 - `SidebarPanel` — collapsible left panel with document type cards (200px width)
@@ -87,7 +98,7 @@ All views are `UserControl` pages hosted inside `AppShell`:
 
 **GetContractService** — `POST get/contract` (`ValidateAsync`) to confirm a barcode/document_number exists; `POST get/all?perPage=10&page=1` (`SearchAllAsync`) to fetch the full `ContractItem` with `constant_details`. Used exclusively by `BarcodeScanPage`.
 
-**ConstantDocumentDetailService** — `POST constant-document-detail/store` with branchId, contractDocumentId, file path, and photoCount.
+**ConstantDocumentDetailService** — `POST constant-document-detail/store` (`StoreAsync`) and `PUT contract-document-detail/update/{id}` (`UpdateAsync`) — both accept documentNumber, contractDocumentId, filePath, photoCount.
 
 **UploadService** — uploads PDF to `upload` endpoint with file + branch name; returns file URL. Includes `IsPdfFile()` and `GetFileSizeMB()` helpers.
 
@@ -115,6 +126,8 @@ All UI text is in Uzbek.
 | OpenCvSharp4.Extensions | Mat ↔ Bitmap conversion |
 | PdfSharpCore (1.3.67) | Multi-page PDF generation |
 | ZXing.Net (0.16.9) | Barcode decoding (EAN-13, Code128, QR, etc.) |
+| Microsoft.Web.WebView2 (1.0.3912.50) | In-app PDF viewer (admin mode) |
+| Interop.WIA (1.0.0) | WIA scanner interface (referenced but currently unused) |
 
 No additional HTTP client libraries — uses built-in `System.Net.Http.HttpClient`.
 

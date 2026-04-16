@@ -11,6 +11,7 @@ using System.Windows.Controls.Primitives;
 using System.Windows.Media;
 using System.Windows.Media.Animation;
 using System.Windows.Media.Imaging;
+using Microsoft.Web.WebView2.Core;
 using OpenCvSharp;
 using PdfSharpCore.Drawing;
 using PdfSharpCore.Pdf;
@@ -30,6 +31,11 @@ public partial class ScannerPage : UserControl
     private List<ContractDetailEntry>? _fetchedConstantDetails; // get/all dan yangilangan constant_details
     private List<ContractDetailEntry>? _fetchedDetails;         // get/all dan yangilangan details
 
+    // Superadmin rejimi: PDF ko'rish ↔ skanerlash toggle
+    private bool _isAdminMode;   // superadmin + contract = true
+    private bool _isPdfViewMode; // true = PDF viewer, false = kamera
+    private bool _pdfViewerReady;
+
     // ─── Kamera holati ───────────────────────────────────────────
     private VideoCapture? _capture;
     private CancellationTokenSource? _cts;
@@ -47,6 +53,7 @@ public partial class ScannerPage : UserControl
     private readonly Dictionary<int, Border> _cardBorders = new();          // border referenslari
     private readonly Dictionary<int, TextBlock> _cardCountBadges = new();   // rasm soni badge lari
     private readonly Dictionary<int, Button> _cardViewBtns = new();         // ko'z tugmasi referenslari
+    private readonly Dictionary<int, Button> _cardReloadBtns = new();      // tozalash tugmasi referenslari
     private readonly HashSet<int> _initiallyUploadedCardIds = new();        // dastlab yuklangan card IDlar
     private int _captureCount;
     private readonly System.Windows.Point[] _cropPoints = new System.Windows.Point[4];
@@ -80,15 +87,31 @@ public partial class ScannerPage : UserControl
 
     private async void ScannerPage_Loaded(object sender, RoutedEventArgs e)
     {
+        _isAdminMode = AuthService.CurrentUser?.Role == "superadmin" && _contract != null;
+
         if (_contract != null)
         {
-            // Shartnoma rejimi
             TxtContractInfo.Text = $"Shartnoma: {_contract.DocumentNumber} | Mijoz: {_contract.Name} | Tel: {_contract.TelNumber}";
             TxtContractInfo.Visibility = Visibility.Visible;
             BtnBack.Visibility = Visibility.Visible;
             SidebarPanel.Visibility = Visibility.Visible;
             BtnToggleSidebar.Visibility = Visibility.Visible;
-            BranchFilterPanel.Visibility = Visibility.Visible;
+
+            if (_isAdminMode)
+            {
+                // Superadmin: PDF ko'rish rejimi (boshlang'ich)
+                _isPdfViewMode = true;
+                CameraPanel.Visibility    = Visibility.Collapsed;
+                PdfViewerPanel.Visibility = Visibility.Visible;
+                BranchFilterPanel.Visibility = Visibility.Collapsed;
+                BtnToggleScanMode.Visibility = Visibility.Visible;
+                TxtToggleIcon.Text = "\uE722"; // kamera icon — bosib scan rejimga o'tish
+                await InitPdfViewerAsync();
+            }
+            else
+            {
+                BranchFilterPanel.Visibility = Visibility.Visible;
+            }
 
             await LoadBranchesAsync();
             await LoadDocumentTypesAsync();
@@ -100,8 +123,48 @@ public partial class ScannerPage : UserControl
             BtnLogout.Visibility = Visibility.Visible;
         }
 
-        // Kamerani avtomatik boshlash
-        await StartCameraAsync();
+        if (!_isAdminMode)
+            await StartCameraAsync();
+    }
+
+    // WebView2 ni ishga tushirish (bir marta)
+    private async Task InitPdfViewerAsync()
+    {
+        try
+        {
+            await PdfWebView.EnsureCoreWebView2Async();
+            _pdfViewerReady = true;
+            // PDF panel tayyorligi uchun fon rangini o'rnatish
+            PdfWebView.DefaultBackgroundColor = System.Drawing.Color.FromArgb(15, 17, 23);
+        }
+        catch (Exception ex)
+        {
+            Log($"⚠ PDF viewer ishga tushmadi: {ex.Message}");
+        }
+    }
+
+    // Tanlangan card PDF URL ini WebView2 da ochish
+    private void ShowPdfInViewer(string? url)
+    {
+        if (string.IsNullOrWhiteSpace(url))
+        {
+            PdfWebView.Visibility  = Visibility.Collapsed;
+            PdfEmptyPanel.Visibility = Visibility.Visible;
+            TxtPdfHint.Text = "Bu karta uchun PDF fayl topilmadi";
+            return;
+        }
+
+        if (!_pdfViewerReady)
+        {
+            PdfWebView.Visibility  = Visibility.Collapsed;
+            PdfEmptyPanel.Visibility = Visibility.Visible;
+            TxtPdfHint.Text = "PDF viewer tayyorlanmoqda...";
+            return;
+        }
+
+        PdfEmptyPanel.Visibility = Visibility.Collapsed;
+        PdfWebView.Visibility    = Visibility.Visible;
+        PdfWebView.CoreWebView2.Navigate(url);
     }
 
     // Kamerani boshlash logikasi (avval BtnStart_Click ichida edi)
@@ -439,6 +502,7 @@ public partial class ScannerPage : UserControl
         _cardBorders.Clear();
         _cardCountBadges.Clear();
         _cardViewBtns.Clear();
+        _cardReloadBtns.Clear();
         _initiallyUploadedCardIds.Clear();
 
         foreach (var docType in _allDocumentTypes)
@@ -466,6 +530,14 @@ public partial class ScannerPage : UserControl
                 SetCardCountBadge(cardId, totalPhotos);
             }
         }
+
+        // Admin rejimida birinchi cardni avtomatik tanlash
+        if (_isAdminMode && _allDocumentTypes?.Count > 0)
+        {
+            var first = _allDocumentTypes[0];
+            if (_cardBorders.TryGetValue(first.Id, out var firstCard))
+                SelectDocumentType(first, firstCard);
+        }
     }
 
     private Border CreateDocumentCard(ContractDocumentType docType)
@@ -476,7 +548,7 @@ public partial class ScannerPage : UserControl
         {
             Height          = 68,
             CornerRadius    = new CornerRadius(10),
-            Margin          = new Thickness(0, 0, 0, 6),
+            Margin          = new Thickness(0, 0, 0, 10),
             Cursor          = System.Windows.Input.Cursors.Hand,
             Background      = new SolidColorBrush(Color.FromArgb(40, accent.R, accent.G, accent.B)),
             BorderThickness = new Thickness(1.5),
@@ -538,38 +610,65 @@ public partial class ScannerPage : UserControl
         //DockPanel.SetDock(iconText, Dock.Right);
         //dock.Children.Add(iconText);
 
-        // O'ng: ko'z tugmasi (PDF ochish)
+        // O'ng ust burchak: tugmalar paneli (ko'z + tozalash)
+        var btnPanel = new StackPanel
+        {
+            Orientation         = Orientation.Horizontal,
+            HorizontalAlignment = HorizontalAlignment.Right,
+            VerticalAlignment   = VerticalAlignment.Bottom,
+            Margin              = new Thickness(0, 0, 4, 4)
+        };
+
+        // Ko'z tugmasi (PDF ochish) — faqat "done" holatida ko'rinadi
         var eyeBtn = new Button
         {
-            Content             = "\uE890",   // Segoe MDL2 Assets – View/Eye
-            FontFamily          = new FontFamily("Segoe MDL2 Assets"),
-            FontSize            = 15,
-            Width               = 30,
-            Background          = Brushes.Transparent,
-            BorderThickness     = new Thickness(0),
-            Cursor              = System.Windows.Input.Cursors.Hand,
-            Foreground          = Brushes.White,
-            Visibility          = Visibility.Collapsed,
-            Padding             = new Thickness(0),
-            Margin = new Thickness(30, 15, 7, 5),
-            VerticalAlignment   = VerticalAlignment.Bottom,
-            HorizontalAlignment = HorizontalAlignment.Right,
-            ToolTip             = "PDF ni brauzerda ochish",
+            Content          = "\uE890",
+            FontFamily       = new FontFamily("Segoe MDL2 Assets"),
+            FontSize         = 14,
+            Width            = 28,
+            Height           = 28,
+            Background       = new SolidColorBrush(Color.FromArgb(80, 0, 0, 0)),
+            BorderThickness  = new Thickness(0),
+            Cursor           = System.Windows.Input.Cursors.Hand,
+            Foreground       = Brushes.White,
+            Visibility       = Visibility.Collapsed,
+            Padding          = new Thickness(0),
+            ToolTip          = "PDF ni brauzerda ochish",
             FocusVisualStyle = null
         };
         eyeBtn.MouseEnter += (s, e) =>
-        {
-            eyeBtn.Background = Brushes.Transparent;
-            eyeBtn.Foreground = Brushes.Black;
-        };
-
+            eyeBtn.Background = new SolidColorBrush(Color.FromArgb(130, 0, 0, 0));
         eyeBtn.MouseLeave += (s, e) =>
-        {
-            eyeBtn.Background = Brushes.Transparent;
-            eyeBtn.Foreground = Brushes.White;
-        };
+            eyeBtn.Background = new SolidColorBrush(Color.FromArgb(80, 0, 0, 0));
         eyeBtn.Click += (s, e) => { e.Handled = true; OpenCardPdf(docType.Id); };
-        outer.Children.Add(eyeBtn);
+
+        // Tozalash tugmasi (lokal rasmlarni o'chirish) — faqat lokal rasm borlida ko'rinadi
+        var reloadBtn = new Button
+        {
+            Content          = "\uE72C",   // Segoe MDL2 – Refresh
+            FontFamily       = new FontFamily("Segoe MDL2 Assets"),
+            FontSize         = 13,
+            Width            = 28,
+            Height           = 28,
+            Background       = new SolidColorBrush(Color.FromArgb(80, 0, 0, 0)),
+            BorderThickness  = new Thickness(0),
+            Cursor           = System.Windows.Input.Cursors.Hand,
+            Foreground       = new SolidColorBrush(Color.FromRgb(251, 191, 36)),
+            Visibility       = Visibility.Collapsed,
+            Padding          = new Thickness(0),
+            Margin           = new Thickness(4, 0, 0, 0),
+            ToolTip          = "Lokal rasmlarni tozalash",
+            FocusVisualStyle = null
+        };
+        reloadBtn.MouseEnter += (s, e) =>
+            reloadBtn.Background = new SolidColorBrush(Color.FromArgb(130, 0, 0, 0));
+        reloadBtn.MouseLeave += (s, e) =>
+            reloadBtn.Background = new SolidColorBrush(Color.FromArgb(80, 0, 0, 0));
+        reloadBtn.Click += (s, e) => { e.Handled = true; ClearCardLocalImages(docType.Id); };
+
+        btnPanel.Children.Add(eyeBtn);
+        btnPanel.Children.Add(reloadBtn);
+        outer.Children.Add(btnPanel);
         // Chap: hujjat nomi
         var nameText = new TextBlock
         {
@@ -587,9 +686,10 @@ public partial class ScannerPage : UserControl
         card.Child = outer;
 
         // Referenslarni saqlash
-        _cardFillRects[docType.Id] = fillRect;
-        _cardBorders[docType.Id]   = card;
-        _cardViewBtns[docType.Id]  = eyeBtn;
+        _cardFillRects[docType.Id]  = fillRect;
+        _cardBorders[docType.Id]    = card;
+        _cardViewBtns[docType.Id]   = eyeBtn;
+        _cardReloadBtns[docType.Id] = reloadBtn;
 
         card.MouseLeftButtonDown += (s, e) => SelectDocumentType(docType, card);
         return card;
@@ -599,15 +699,31 @@ public partial class ScannerPage : UserControl
     {
         _selectedDocumentType = docType;
 
-        // Barcha kartalar selection qalinligini reset (rang holati o'zgarmaydi)
+        // Barcha kartalarni reset qilish
         foreach (var b in _cardBorders.Values)
+        {
             b.BorderThickness = new Thickness(1.5);
+            b.Effect = null;
+        }
 
-        // Tanlangan kartada qalin chegara
+        // Tanlangan kartada qalin chegara + shadow
         card.BorderThickness = new Thickness(2.5);
+        var accent = GetCardAccent(docType.Id);
+        card.Effect = new System.Windows.Media.Effects.DropShadowEffect
+        {
+            Color       = accent,
+            BlurRadius  = 18,
+            ShadowDepth = 0,
+            Opacity     = 0.8
+        };
+
+        // Superadmin PDF rejimida — tanlangan card PDF ni ko'rsatish
+        if (_isAdminMode && _isPdfViewMode)
+            ShowPdfInViewer(GetCardFileUrl(docType.Id));
 
         var count = _cardImages.TryGetValue(docType.Id, out var imgs) ? imgs.Count : 0;
-        BtnSave.IsEnabled    = count > 0;
+        _captureCount        = count;
+        BtnSave.IsEnabled    = !_isAdminMode && count > 0;
         TxtCaptureCount.Text = count.ToString();
         Log($"📋 Tanlandi: {docType.PunktName}");
     }
@@ -824,6 +940,7 @@ public partial class ScannerPage : UserControl
             var cardCount = _cardImages[cardId].Count;
             TxtCaptureCount.Text = cardCount.ToString();
             BtnSave.IsEnabled = true;
+            UpdateReloadBtnVisibility(cardId);
             Log($"📸 {_selectedDocumentType.PunktName}: {cardCount}-rasm saqlandi (local).");
         }
         else
@@ -839,7 +956,8 @@ public partial class ScannerPage : UserControl
         var bmp = MatToBitmapSource(enhanced);
         bmp.Freeze();
         CapturedImage.Source = bmp;
-        TxtCaptureCount.Text = _captureCount.ToString();
+        // Contract rejimda TxtCaptureCount allaqachon cardCount bilan yangilangan,
+        // standalone rejimda _captureCount bilan. Ikkinchi marta yozmaslik kerak.
         captureMat.Dispose();
 
         if (_isManualCropMode) BtnManualCrop_Click(this, new RoutedEventArgs());
@@ -1185,11 +1303,8 @@ public partial class ScannerPage : UserControl
                     SetCardState(cardId, "done");
                     SetCardCountBadge(cardId, images.Count);
                     _initiallyUploadedCardIds.Add(cardId); // keyingi saqlashtda UPDATE ishlatilsin
-                    if (_cardImages.TryGetValue(cardId, out var stored))
-                    {
-                        foreach (var m in stored) m.Dispose();
-                        _cardImages.Remove(cardId);
-                    }
+                    DisposeCardImages(cardId);
+                    UpdateReloadBtnVisibility(cardId);
                     BtnSave.IsEnabled = false;
                     TxtCaptureCount.Text = "0";
                     var action = existingDetail != null ? "Yangilandi" : "Saqlandi";
@@ -1198,7 +1313,18 @@ public partial class ScannerPage : UserControl
             }
             else
             {
-                await Dispatcher.InvokeAsync(() => SetCardState(cardId, "failed"));
+                // Saqlash muvaffaqiyatsiz — lokal rasmlarni ham tozalaymiz
+                await Dispatcher.InvokeAsync(() =>
+                {
+                    SetCardState(cardId, "failed");
+                    DisposeCardImages(cardId);
+                    UpdateReloadBtnVisibility(cardId);
+                    if (_selectedDocumentType?.Id == cardId)
+                    {
+                        BtnSave.IsEnabled    = false;
+                        TxtCaptureCount.Text = "0";
+                    }
+                });
             }
         }
         catch (Exception ex)
@@ -1206,6 +1332,13 @@ public partial class ScannerPage : UserControl
             await Dispatcher.InvokeAsync(() =>
             {
                 SetCardState(cardId, "failed");
+                DisposeCardImages(cardId);
+                UpdateReloadBtnVisibility(cardId);
+                if (_selectedDocumentType?.Id == cardId)
+                {
+                    BtnSave.IsEnabled    = false;
+                    TxtCaptureCount.Text = "0";
+                }
                 Log($"❌ Saqlash xatosi: {ex.Message}");
             });
         }
@@ -1285,6 +1418,94 @@ public partial class ScannerPage : UserControl
                 break;
             }
         }
+    }
+
+    // ─── Superadmin: PDF ↔ Scan rejim almashtirish ───────────────────
+    private async void BtnToggleScanMode_Click(object sender, RoutedEventArgs e)
+    {
+        if (_isPdfViewMode)
+        {
+            // PDF → Scan rejim
+            _isPdfViewMode = false;
+            PdfViewerPanel.Visibility    = Visibility.Collapsed;
+            CameraPanel.Visibility       = Visibility.Visible;
+            BranchFilterPanel.Visibility = Visibility.Visible;
+
+            // Icon: hisobot (bosib PDF rejimga qaytish)
+            TxtToggleIcon.Text    = "\uE9F9";  // Segoe MDL2 — Report
+            BtnToggleScanMode.ToolTip = "PDF ko'rish rejimine o'tish";
+
+            Log("📷 Skanerlash rejimi yoqildi");
+            await StartCameraAsync();
+        }
+        else
+        {
+            // Scan → PDF rejim
+            _isPdfViewMode = true;
+            await StopCameraAsync();
+
+            CameraPanel.Visibility       = Visibility.Collapsed;
+            PdfViewerPanel.Visibility    = Visibility.Visible;
+            BranchFilterPanel.Visibility = Visibility.Collapsed;
+
+            // Icon: kamera (bosib scan rejimga o'tish)
+            TxtToggleIcon.Text    = "\uE722";  // Segoe MDL2 — Camera
+            BtnToggleScanMode.ToolTip = "Skanerlash rejimine o'tish";
+
+            // Tanlangan card ning PDF ini ko'rsatish
+            if (_selectedDocumentType != null)
+            {
+                var url = GetCardFileUrl(_selectedDocumentType.Id);
+                ShowPdfInViewer(url);
+            }
+
+            Log("📄 PDF ko'rish rejimi yoqildi");
+        }
+    }
+
+    // Card uchun server da saqlangan PDF URL ni olish
+    private string? GetCardFileUrl(int cardId) =>
+        (_fetchedConstantDetails ?? new List<ContractDetailEntry>())
+            .Concat(_fetchedDetails ?? new List<ContractDetailEntry>())
+            .Where(d => d.ContractDocumentId == cardId)
+            .OrderByDescending(d => d.Id)
+            .Select(d => d.File)
+            .FirstOrDefault(f => !string.IsNullOrEmpty(f));
+
+    // ─── Lokal rasmlar mavjudligiga qarab reload tugmasini ko'rsatish ──
+    private void UpdateReloadBtnVisibility(int cardId)
+    {
+        if (!_cardReloadBtns.TryGetValue(cardId, out var btn)) return;
+        var hasImages = _cardImages.TryGetValue(cardId, out var imgs) && imgs.Count > 0;
+        btn.Visibility = hasImages ? Visibility.Visible : Visibility.Collapsed;
+    }
+
+    // ─── Lokal rasmlarni xotirasiz tozalash (ichki yordamchi) ──────
+    private void DisposeCardImages(int cardId)
+    {
+        if (!_cardImages.TryGetValue(cardId, out var imgs)) return;
+        foreach (var m in imgs) m.Dispose();
+        _cardImages.Remove(cardId);
+    }
+
+    // ─── Reload tugmasi bosilganda: lokal rasmlarni tozalash ───────
+    private void ClearCardLocalImages(int cardId)
+    {
+        DisposeCardImages(cardId);
+
+        // Avval server da yuklangan bo'lsa → "done", yo'q → "normal"
+        var wasUploaded = _initiallyUploadedCardIds.Contains(cardId);
+        SetCardState(cardId, wasUploaded ? "done" : "normal");
+
+        UpdateReloadBtnVisibility(cardId);
+
+        if (_selectedDocumentType?.Id == cardId)
+        {
+            _captureCount        = 0;
+            BtnSave.IsEnabled    = false;
+            TxtCaptureCount.Text = "0";
+        }
+        Log($"🔄 Karta lokal rasmlari tozalandi: ID={cardId}");
     }
 
     // ─── Ko'z tugmasi: PDF ni brauzerda ochish ────────────────────
@@ -1383,14 +1604,19 @@ public partial class ScannerPage : UserControl
                 Cv2.ImWrite(tempFile, mat);
                 using var xImage = XImage.FromFile(tempFile);
                 var page = document.AddPage();
-                page.Width  = XUnit.FromPoint(xImage.PointWidth  * (72.0 / xImage.HorizontalResolution));
-                page.Height = XUnit.FromPoint(xImage.PointHeight * (72.0 / xImage.VerticalResolution));
+
+                // xImage.HorizontalResolution PNG da 0 bo'lishi mumkin (OpenCV DPI yozmaydi)
+                // → 72.0/0 = Infinity → noto'g'ri sahifa o'lchami → sahifalar ko'rinmaydi
+                // Mat ning haqiqiy piksel o'lchamlaridan foydalanamiz (har doim to'g'ri)
+                page.Width  = XUnit.FromPoint(mat.Cols * 72.0 / 96.0);
+                page.Height = XUnit.FromPoint(mat.Rows * 72.0 / 96.0);
+
                 using var gfx = XGraphics.FromPdfPage(page);
                 gfx.DrawImage(xImage, 0, 0, page.Width, page.Height);
             }
             finally
             {
-                if (File.Exists(tempFile)) File.Delete(tempFile);
+                if (File.Exists(tempFile)) try { File.Delete(tempFile); } catch { }
             }
         }
         document.Save(outputPath);
