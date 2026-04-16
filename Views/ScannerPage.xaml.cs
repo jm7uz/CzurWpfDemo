@@ -132,10 +132,19 @@ public partial class ScannerPage : UserControl
     {
         try
         {
+            // EnsureCoreWebView2Async collapsedda ham ishlaydi, lekin
+            // NavigationCompleted ni faqat bir marta ulaymiz
             await PdfWebView.EnsureCoreWebView2Async();
             _pdfViewerReady = true;
-            // PDF panel tayyorligi uchun fon rangini o'rnatish
             PdfWebView.DefaultBackgroundColor = System.Drawing.Color.FromArgb(15, 17, 23);
+
+            // Navigatsiya xatolarini log qilish
+            PdfWebView.CoreWebView2.NavigationCompleted += (s, e) =>
+            {
+                if (!e.IsSuccess)
+                    Dispatcher.InvokeAsync(() =>
+                        Log($"⚠ PDF yuklashda xatolik (WebErrorStatus: {e.WebErrorStatus})"));
+            };
         }
         catch (Exception ex)
         {
@@ -148,7 +157,7 @@ public partial class ScannerPage : UserControl
     {
         if (string.IsNullOrWhiteSpace(url))
         {
-            PdfWebView.Visibility  = Visibility.Collapsed;
+            PdfWebView.Visibility    = Visibility.Collapsed;
             PdfEmptyPanel.Visibility = Visibility.Visible;
             TxtPdfHint.Text = "Bu karta uchun PDF fayl topilmadi";
             return;
@@ -156,12 +165,21 @@ public partial class ScannerPage : UserControl
 
         if (!_pdfViewerReady)
         {
-            PdfWebView.Visibility  = Visibility.Collapsed;
+            PdfWebView.Visibility    = Visibility.Collapsed;
             PdfEmptyPanel.Visibility = Visibility.Visible;
             TxtPdfHint.Text = "PDF viewer tayyorlanmoqda...";
             return;
         }
 
+        // Nisbiy URL bo'lsa — to'liq manzilga o'girish
+        if (!url.StartsWith("http://", StringComparison.OrdinalIgnoreCase) &&
+            !url.StartsWith("https://", StringComparison.OrdinalIgnoreCase))
+        {
+            var baseRoot = ApiService.BaseUrl.Replace("/api/", "/").TrimEnd('/');
+            url = baseRoot + "/" + url.TrimStart('/');
+        }
+
+        Log($"📄 PDF ochilmoqda: {url}");
         PdfEmptyPanel.Visibility = Visibility.Collapsed;
         PdfWebView.Visibility    = Visibility.Visible;
         PdfWebView.CoreWebView2.Navigate(url);

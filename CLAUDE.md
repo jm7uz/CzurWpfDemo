@@ -88,7 +88,7 @@ All views are `UserControl` pages hosted inside `AppShell`:
 
 **AuthService** — stateless; stores `Token` and `CurrentUser` as static properties; calls `auth/login` and `auth/me` endpoints.
 
-**ApiService** — shared `HttpClient` with snake_case JSON serialization (`JsonNamingPolicy.SnakeCaseLower`), base URL `http://10.100.104.104:9505/api/`, Bearer token header via `SetToken()`. **Note:** `GetAsync`/`PostAsync` have no try/catch — only `PostMultipartAsync` overloads do. Callers must handle exceptions.
+**ApiService** — shared `HttpClient` with snake_case JSON serialization (`JsonNamingPolicy.SnakeCaseLower`), Bearer token header via `SetToken()`. Base URL is hardcoded: local `http://10.100.104.104:9505/api/`, production `http://sud-upload-file.garant.uz/api/` (swap the commented line in `ApiService.cs`). Provides `GetAsync<T>`, `PostAsync<T>`, `PutAsync<T>`, and two `PostMultipartAsync` overloads. **Note:** `GetAsync`/`PostAsync`/`PutAsync` have no try/catch — only `PostMultipartAsync` overloads do. Callers must handle exceptions.
 
 **ReportService** — `POST report/by/user` with optional search, userId, and date range.
 
