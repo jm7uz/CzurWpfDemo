@@ -9,8 +9,8 @@ public class ApiService
 {
     private static readonly HttpClient _client = new();
     // dotnet publish CzurWpfDemo.csproj -c Release -r win-x64 --self-contained true -p:PublishReadyToRun=true -o ./publish/CzurWpfDemo // .exe yaratish uchun
-    public const string BaseUrl = "http://10.100.104.104:9505/api/"; // local
-    //public const string BaseUrl = "http://sud-upload-file.garant.uz/api/";// production
+    // public const string BaseUrl = "http://10.100.104.104:9505/api/"; // local
+    public const string BaseUrl = "http://sud-upload-file.garant.uz/api/";// production
 
     private static readonly JsonSerializerOptions _jsonOptions = new()
     {
@@ -76,6 +76,34 @@ public class ApiService
         catch
         {
             return default;
+        }
+    }
+
+    // Faylni to'g'ridan-to'g'ri URL bo'yicha yuklab olish — faqat haqiqiy PDF baytlari
+    public static async Task<byte[]?> DownloadFileAsync(string url)
+    {
+        try
+        {
+            using var request = new HttpRequestMessage(HttpMethod.Get, url);
+            request.Headers.Accept.ParseAdd("application/pdf");
+            request.Headers.Accept.ParseAdd("application/octet-stream");
+
+            var response = await _client.SendAsync(request);
+            if (!response.IsSuccessStatusCode) return null;
+
+            var bytes = await response.Content.ReadAsByteArrayAsync();
+
+            // PDF magic bytes tekshiruvi: har qanday fayl %PDF bilan boshlanishi kerak
+            if (bytes.Length < 4 ||
+                bytes[0] != 0x25 || bytes[1] != 0x50 ||
+                bytes[2] != 0x44 || bytes[3] != 0x46)
+                return null;
+
+            return bytes;
+        }
+        catch
+        {
+            return null;
         }
     }
 }

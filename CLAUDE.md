@@ -36,7 +36,7 @@ Target framework is `net10.0-windows`. Solution file uses the `.slnx` format (VS
 ### Page Navigation
 
 All views are `UserControl` pages hosted inside `AppShell`:
-- `ReportPage` — user selection grid (superadmin only); double-click → `Navigate(new ContractDetailsPage(userId, userName))`
+- `ReportPage` — user selection grid (superadmin only); double-click → `Navigate(new ContractDetailsPage(userId, userName))`; has a "Create User" overlay form (name, phone with `998xx` prefix formatting, password with eye-toggle, role ComboBox, isActive checkbox) that calls `UserService.StoreAsync()`
 - `ContractDetailsPage(userId, userName)` — paginated DataGrid of contracts; double-click → `Navigate(new ScannerPage(contractItem))`; "Scan" button → `Navigate(new BarcodeScanPage())`
 - `BarcodeScanPage` — live camera barcode scanner; on successful scan calls `GetContractService.ValidateAsync()` then `SearchAllAsync()`, then → `Navigate(new ScannerPage(contract))`; stops camera via `Unloaded` event (not via `AppShell`)
 - `ScannerPage` — scanner (replaces old `MainWindow`); works in standalone mode (no arg) or contract mode (with `ContractItem`)
@@ -103,6 +103,8 @@ All views are `UserControl` pages hosted inside `AppShell`:
 **UploadService** — uploads PDF to `upload` endpoint with file + branch name; returns file URL. Includes `IsPdfFile()` and `GetFileSizeMB()` helpers.
 
 **BranchService** — `POST branchs?perPage=X&page=Y` with `{search: null}`. `GetAllBranchesAsync()` fetches all pages combined.
+
+**UserService** — `POST users?perPage=X&page=Y` (`GetAllAsync`) for paginated user list with optional search; `POST users/store` (`StoreAsync`) to create a new user. `UserItem` has id, name, phone, role, isActive, createdAt.
 
 ### UI Layout
 

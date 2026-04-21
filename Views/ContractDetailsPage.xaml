@@ -20,6 +20,20 @@
                     Click="BtnScan_Click"
                     DockPanel.Dock="Right"
                     VerticalAlignment="Center"/>
+            <StackPanel DockPanel.Dock="Right" Orientation="Vertical"
+                        VerticalAlignment="Center" Margin="0,0,10,0">
+                <Button x:Name="BtnDownloadAll" Content="&#x2B07; Barchasini yuklash"
+                        Style="{StaticResource SuccessButton}"
+                        Click="BtnDownloadAll_Click"/>
+                <ProgressBar x:Name="PbDownloadAll"
+                             Height="3" Minimum="0" Maximum="1"
+                             IsIndeterminate="True"
+                             Visibility="Collapsed"
+                             Foreground="#34D399"
+                             Background="Transparent"
+                             BorderThickness="0"
+                             Margin="0,4,0,0"/>
+            </StackPanel>
             <StackPanel>
                 <TextBlock x:Name="TxtTitle" Text="Shartnomalar"
                            FontFamily="Segoe UI Light" FontSize="26"
@@ -59,6 +73,7 @@
                       AutoGenerateColumns="False"
                       IsReadOnly="True"
                       MouseDoubleClick="DgContracts_MouseDoubleClick"
+                      LoadingRow="DgContracts_LoadingRow"
                       Cursor="Hand"
                       Background="Transparent"
                       BorderThickness="0"
@@ -66,7 +81,7 @@
                       HorizontalGridLinesBrush="#2D3348"
                       RowBackground="#1C1F2E"
                       AlternatingRowBackground="#222638"
-                      HeadersVisibility="Column"
+                      HeadersVisibility="All"
                       CanUserResizeRows="False"
                       SelectionMode="Single"
                       FontFamily="Segoe UI"
@@ -85,6 +100,19 @@
                         <Setter Property="BorderThickness" Value="0,0,0,1"/>
                     </Style>
                 </DataGrid.ColumnHeaderStyle>
+
+                <DataGrid.RowHeaderStyle>
+                    <Style TargetType="DataGridRowHeader">
+                        <Setter Property="Background" Value="#161929"/>
+                        <Setter Property="Foreground" Value="#6B7280"/>
+                        <Setter Property="FontFamily" Value="Segoe UI"/>
+                        <Setter Property="FontSize" Value="11"/>
+                        <Setter Property="Width" Value="44"/>
+                        <Setter Property="HorizontalContentAlignment" Value="Center"/>
+                        <Setter Property="BorderBrush" Value="#2D3348"/>
+                        <Setter Property="BorderThickness" Value="0,0,1,0"/>
+                    </Style>
+                </DataGrid.RowHeaderStyle>
 
                 <DataGrid.CellStyle>
                     <Style TargetType="DataGridCell">
@@ -120,7 +148,6 @@
                 </DataGrid.RowStyle>
 
                 <DataGrid.Columns>
-                    <DataGridTextColumn Header="#" Binding="{Binding Id}" Width="50"/>
                     <DataGridTextColumn Header="Hujjat raqami" Binding="{Binding DocumentNumber}" Width="140"/>
                     <DataGridTextColumn Header="F.I.O" Binding="{Binding Name}" Width="*"/>
                     <DataGridTextColumn Header="Tug'ilgan sana" Binding="{Binding BirthDateFormatted}" Width="100"/>
@@ -131,6 +158,36 @@
                     <DataGridTextColumn Header="Sana" Binding="{Binding DateFormatted}" Width="120"/>
                     <DataGridTextColumn Header="Holat" Binding="{Binding Status}" Width="80"/>
                     <DataGridTextColumn Header="Mas'ul" Binding="{Binding ResponsibleWorker}" Width="130"/>
+                    <DataGridTemplateColumn Header="Yuklash" Width="66" CanUserSort="False" CanUserResize="False">
+                        <DataGridTemplateColumn.CellTemplate>
+                            <DataTemplate>
+                                <Button x:Name="BtnRowDownload"
+                                        Tag="{Binding}"
+                                        Click="BtnDownload_Click"
+                                        PreviewMouseDoubleClick="BtnDownload_PreviewDoubleClick"
+                                        Width="36" Height="28"
+                                        HorizontalAlignment="Center" VerticalAlignment="Center"
+                                        ToolTip="PDFlarni yuklab olish"
+                                        Background="#1E3A5F" BorderThickness="0"
+                                        Cursor="Hand" Foreground="White">
+                                    <Grid Width="24" Height="18">
+                                        <TextBlock x:Name="TxtRowArrow"
+                                                   Text="&#x2B07;" FontSize="14"
+                                                   HorizontalAlignment="Center"
+                                                   VerticalAlignment="Center"/>
+                                        <ProgressBar x:Name="PbRowDownload"
+                                                     IsIndeterminate="True"
+                                                     Height="4"
+                                                     VerticalAlignment="Center"
+                                                     Visibility="Collapsed"
+                                                     Foreground="#60A5FA"
+                                                     Background="Transparent"
+                                                     BorderThickness="0"/>
+                                    </Grid>
+                                </Button>
+                            </DataTemplate>
+                        </DataGridTemplateColumn.CellTemplate>
+                    </DataGridTemplateColumn>
                 </DataGrid.Columns>
             </DataGrid>
         </Border>

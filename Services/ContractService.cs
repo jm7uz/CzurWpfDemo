@@ -6,7 +6,7 @@ namespace CzurWpfDemo.Services;
 public class ContractService
 {
     public static async Task<ContractDetailsResponse?> GetDetailsAsync(
-        int userId, string? search, string? dateFrom, string? dateTo, int page = 1)
+        int userId, string? search, string? dateFrom, string? dateTo, int page = 1, int perPage = 30)
     {
         var request = new ContractDetailsRequest
         {
@@ -16,7 +16,7 @@ public class ContractService
                 : null
         };
 
-        var endpoint = $"report/details/{userId}?column=id&direction=DESC&perPage=30&page={page}";
+        var endpoint = $"report/details/{userId}?column=id&direction=DESC&perPage={perPage}&page={page}";
         return await ApiService.PostAsync<ContractDetailsResponse>(endpoint, request);
     }
 }

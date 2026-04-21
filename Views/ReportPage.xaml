@@ -2,6 +2,269 @@
              xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
 
+    <UserControl.Resources>
+
+        <!-- PasswordBox: FilterInput bilan bir xil ko'rinish -->
+        <Style x:Key="DarkPasswordBox" TargetType="PasswordBox">
+            <Setter Property="Background"              Value="#1E2235"/>
+            <Setter Property="Foreground"              Value="#F3F4F6"/>
+            <Setter Property="CaretBrush"              Value="#F3F4F6"/>
+            <Setter Property="SelectionBrush"          Value="#2563EB"/>
+            <Setter Property="FontFamily"              Value="Segoe UI"/>
+            <Setter Property="FontSize"                Value="13"/>
+            <Setter Property="PasswordChar"            Value="●"/>
+            <Setter Property="OverridesDefaultStyle"   Value="True"/>
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="PasswordBox">
+                        <Border x:Name="Bd"
+                                Background="{TemplateBinding Background}"
+                                BorderBrush="#2D3348"
+                                BorderThickness="1"
+                                CornerRadius="8">
+                            <ScrollViewer x:Name="PART_ContentHost"
+                                          Margin="12,0"
+                                          Background="Transparent"
+                                          Focusable="False"
+                                          HorizontalScrollBarVisibility="Hidden"
+                                          VerticalScrollBarVisibility="Hidden"
+                                          VerticalAlignment="Center"/>
+                        </Border>
+                        <ControlTemplate.Triggers>
+                            <Trigger Property="IsMouseOver" Value="True">
+                                <Setter TargetName="Bd" Property="BorderBrush" Value="#4B5563"/>
+                            </Trigger>
+                            <Trigger Property="IsKeyboardFocusWithin" Value="True">
+                                <Setter TargetName="Bd" Property="BorderBrush" Value="#3B82F6"/>
+                            </Trigger>
+                        </ControlTemplate.Triggers>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+
+        <!-- TextBox: dialog uchun -->
+        <Style x:Key="DialogInput" TargetType="TextBox">
+            <Setter Property="Background"             Value="#1E2235"/>
+            <Setter Property="Foreground"             Value="#F3F4F6"/>
+            <Setter Property="BorderBrush"            Value="#2D3348"/>
+            <Setter Property="BorderThickness"        Value="1"/>
+            <Setter Property="FontFamily"             Value="Segoe UI"/>
+            <Setter Property="FontSize"               Value="13"/>
+            <Setter Property="CaretBrush"             Value="#F3F4F6"/>
+            <Setter Property="SelectionBrush"         Value="#2563EB"/>
+            <Setter Property="VerticalContentAlignment" Value="Center"/>
+            <Setter Property="OverridesDefaultStyle"  Value="True"/>
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="TextBox">
+                        <Border x:Name="Bd"
+                                Background="{TemplateBinding Background}"
+                                BorderBrush="{TemplateBinding BorderBrush}"
+                                BorderThickness="{TemplateBinding BorderThickness}"
+                                CornerRadius="8">
+                            <ScrollViewer x:Name="PART_ContentHost"
+                                          Margin="12,0"
+                                          Background="Transparent"
+                                          Focusable="False"
+                                          HorizontalScrollBarVisibility="Hidden"
+                                          VerticalScrollBarVisibility="Hidden"
+                                          VerticalAlignment="Center"
+                                          TextElement.Foreground="{TemplateBinding Foreground}"/>
+                        </Border>
+                        <ControlTemplate.Triggers>
+                            <Trigger Property="IsMouseOver" Value="True">
+                                <Setter TargetName="Bd" Property="BorderBrush" Value="#4B5563"/>
+                            </Trigger>
+                            <Trigger Property="IsFocused" Value="True">
+                                <Setter TargetName="Bd" Property="BorderBrush" Value="#3B82F6"/>
+                            </Trigger>
+                        </ControlTemplate.Triggers>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+
+        <!-- ComboBox: to'liq dark tema -->
+        <Style x:Key="DarkComboBox" TargetType="ComboBox">
+            <Setter Property="Background"           Value="#1E2235"/>
+            <Setter Property="Foreground"           Value="#F3F4F6"/>
+            <Setter Property="BorderBrush"          Value="#2D3348"/>
+            <Setter Property="BorderThickness"      Value="1"/>
+            <Setter Property="FontFamily"           Value="Segoe UI"/>
+            <Setter Property="FontSize"             Value="13"/>
+            <Setter Property="Cursor"               Value="Hand"/>
+            <Setter Property="OverridesDefaultStyle" Value="True"/>
+            <Setter Property="ScrollViewer.HorizontalScrollBarVisibility" Value="Auto"/>
+            <Setter Property="ScrollViewer.VerticalScrollBarVisibility"   Value="Auto"/>
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="ComboBox">
+                        <Grid>
+                            <!-- PART_ToggleButton — dropdown ochish/yopish uchun -->
+                            <ToggleButton x:Name="PART_ToggleButton"
+                                          IsChecked="{Binding IsDropDownOpen,
+                                              RelativeSource={RelativeSource TemplatedParent},
+                                              Mode=TwoWay}"
+                                          Focusable="False"
+                                          ClickMode="Press">
+                                <ToggleButton.Template>
+                                    <ControlTemplate TargetType="ToggleButton">
+                                        <Border x:Name="Bd"
+                                                Background="{Binding Background,
+                                                    RelativeSource={RelativeSource AncestorType=ComboBox}}"
+                                                BorderBrush="{Binding BorderBrush,
+                                                    RelativeSource={RelativeSource AncestorType=ComboBox}}"
+                                                BorderThickness="{Binding BorderThickness,
+                                                    RelativeSource={RelativeSource AncestorType=ComboBox}}"
+                                                CornerRadius="8">
+                                            <DockPanel Margin="12,0,0,0">
+                                                <!-- Ok belgisi -->
+                                                <Border DockPanel.Dock="Right" Width="36"
+                                                        Background="Transparent">
+                                                    <TextBlock x:Name="Arrow"
+                                                               Text="&#xE70D;"
+                                                               FontFamily="Segoe MDL2 Assets"
+                                                               FontSize="10"
+                                                               Foreground="#6B7280"
+                                                               HorizontalAlignment="Center"
+                                                               VerticalAlignment="Center"/>
+                                                </Border>
+                                                <!-- Tanlangan qiymat -->
+                                                <ContentPresenter x:Name="ContentSite"
+                                                                  Content="{Binding SelectionBoxItem,
+                                                                      RelativeSource={RelativeSource AncestorType=ComboBox}}"
+                                                                  ContentTemplate="{Binding SelectionBoxItemTemplate,
+                                                                      RelativeSource={RelativeSource AncestorType=ComboBox}}"
+                                                                  IsHitTestVisible="False"
+                                                                  VerticalAlignment="Center"/>
+                                            </DockPanel>
+                                        </Border>
+                                        <ControlTemplate.Triggers>
+                                            <Trigger Property="IsMouseOver" Value="True">
+                                                <Setter TargetName="Bd" Property="BorderBrush" Value="#4B5563"/>
+                                            </Trigger>
+                                            <DataTrigger Binding="{Binding IsDropDownOpen,
+                                                RelativeSource={RelativeSource AncestorType=ComboBox}}"
+                                                         Value="True">
+                                                <Setter TargetName="Bd" Property="BorderBrush" Value="#3B82F6"/>
+                                            </DataTrigger>
+                                        </ControlTemplate.Triggers>
+                                    </ControlTemplate>
+                                </ToggleButton.Template>
+                            </ToggleButton>
+
+                            <!-- Dropdown popup -->
+                            <Popup x:Name="PART_Popup"
+                                   IsOpen="{TemplateBinding IsDropDownOpen}"
+                                   AllowsTransparency="True"
+                                   Focusable="False"
+                                   PopupAnimation="Fade"
+                                   Placement="Bottom"
+                                   VerticalOffset="4">
+                                <Border x:Name="DropBorder"
+                                        MinWidth="{TemplateBinding ActualWidth}"
+                                        MaxHeight="{TemplateBinding MaxDropDownHeight}"
+                                        Background="#1E2235"
+                                        BorderBrush="#3B82F6"
+                                        BorderThickness="1"
+                                        CornerRadius="8">
+                                    <Border.Effect>
+                                        <DropShadowEffect Color="Black" BlurRadius="20"
+                                                          ShadowDepth="4" Opacity="0.6"/>
+                                    </Border.Effect>
+                                    <ScrollViewer Margin="4" CanContentScroll="True">
+                                        <ItemsPresenter/>
+                                    </ScrollViewer>
+                                </Border>
+                            </Popup>
+                        </Grid>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+            <Setter Property="ItemContainerStyle">
+                <Setter.Value>
+                    <Style TargetType="ComboBoxItem">
+                        <Setter Property="Foreground"             Value="#E5E7EB"/>
+                        <Setter Property="FontFamily"             Value="Segoe UI"/>
+                        <Setter Property="FontSize"               Value="13"/>
+                        <Setter Property="Padding"                Value="12,9"/>
+                        <Setter Property="Cursor"                 Value="Hand"/>
+                        <Setter Property="OverridesDefaultStyle"  Value="True"/>
+                        <Setter Property="Template">
+                            <Setter.Value>
+                                <ControlTemplate TargetType="ComboBoxItem">
+                                    <Border x:Name="Bd"
+                                            Background="Transparent"
+                                            CornerRadius="6"
+                                            Padding="{TemplateBinding Padding}">
+                                        <ContentPresenter VerticalAlignment="Center"/>
+                                    </Border>
+                                    <ControlTemplate.Triggers>
+                                        <Trigger Property="IsHighlighted" Value="True">
+                                            <Setter TargetName="Bd" Property="Background" Value="#2D3555"/>
+                                        </Trigger>
+                                        <Trigger Property="IsSelected" Value="True">
+                                            <Setter TargetName="Bd" Property="Background" Value="#1D4ED8"/>
+                                            <Setter Property="Foreground" Value="White"/>
+                                        </Trigger>
+                                    </ControlTemplate.Triggers>
+                                </ControlTemplate>
+                            </Setter.Value>
+                        </Setter>
+                    </Style>
+                </Setter.Value>
+            </Setter>
+        </Style>
+
+        <!-- CheckBox: toza ko'rinish -->
+        <Style x:Key="DarkCheckBox" TargetType="CheckBox">
+            <Setter Property="Foreground"           Value="#D1D5DB"/>
+            <Setter Property="FontFamily"           Value="Segoe UI"/>
+            <Setter Property="FontSize"             Value="13"/>
+            <Setter Property="Cursor"               Value="Hand"/>
+            <Setter Property="OverridesDefaultStyle" Value="True"/>
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="CheckBox">
+                        <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
+                            <Border x:Name="Box"
+                                    Width="18" Height="18"
+                                    CornerRadius="4"
+                                    BorderBrush="#4B5563"
+                                    BorderThickness="1.5"
+                                    Background="Transparent"
+                                    VerticalAlignment="Center">
+                                <TextBlock x:Name="Check"
+                                           Text="&#xE73E;"
+                                           FontFamily="Segoe MDL2 Assets"
+                                           FontSize="10"
+                                           Foreground="White"
+                                           HorizontalAlignment="Center"
+                                           VerticalAlignment="Center"
+                                           Visibility="Collapsed"/>
+                            </Border>
+                            <ContentPresenter Margin="8,0,0,0"
+                                              VerticalAlignment="Center"
+                                              TextBlock.Foreground="{TemplateBinding Foreground}"/>
+                        </StackPanel>
+                        <ControlTemplate.Triggers>
+                            <Trigger Property="IsChecked" Value="True">
+                                <Setter TargetName="Box"   Property="Background"   Value="#2563EB"/>
+                                <Setter TargetName="Box"   Property="BorderBrush"  Value="#2563EB"/>
+                                <Setter TargetName="Check" Property="Visibility"   Value="Visible"/>
+                            </Trigger>
+                            <Trigger Property="IsMouseOver" Value="True">
+                                <Setter TargetName="Box" Property="BorderBrush" Value="#3B82F6"/>
+                            </Trigger>
+                        </ControlTemplate.Triggers>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+
+    </UserControl.Resources>
+
     <Grid Margin="20">
         <Grid.RowDefinitions>
             <RowDefinition Height="Auto"/>
@@ -16,12 +279,21 @@
                     Click="BtnLogout_Click"
                     DockPanel.Dock="Right"
                     VerticalAlignment="Center"/>
+            <Button Content="＋  Unduruvchi yaratish"
+                    Style="{StaticResource PrimaryButton}"
+                    Click="BtnCreateUser_Click"
+                    DockPanel.Dock="Right"
+                    VerticalAlignment="Center"
+                    Margin="0,0,10,0"/>
+            <Button Content="&#128247; Skanerlash"
+                    Style="{StaticResource ActionButton}"
+                    Click="BtnScan_Click"
+                    DockPanel.Dock="Right"
+                    VerticalAlignment="Center"
+                    Margin="0,0,10,0"/>
             <StackPanel>
-                <TextBlock Text="Unduruvchilar" FontFamily="Segoe UI Light"
+                <TextBlock Text="Hodimlar" FontFamily="Segoe UI Light"
                            FontSize="26" Foreground="#F3F4F6"/>
-                <!--<TextBlock x:Name="TxtUserInfo" Text=""
-                           Foreground="#6B7280" FontFamily="Segoe UI"
-                           FontSize="12" Margin="0,2,0,0"/>-->
             </StackPanel>
         </DockPanel>
 
@@ -54,6 +326,7 @@
                       AutoGenerateColumns="False"
                       IsReadOnly="True"
                       MouseDoubleClick="DgReport_MouseDoubleClick"
+                      LoadingRow="DgReport_LoadingRow"
                       Cursor="Hand"
                       Background="Transparent"
                       BorderThickness="0"
@@ -61,7 +334,7 @@
                       HorizontalGridLinesBrush="#2D3348"
                       RowBackground="#1C1F2E"
                       AlternatingRowBackground="#222638"
-                      HeadersVisibility="Column"
+                      HeadersVisibility="All"
                       CanUserResizeRows="False"
                       SelectionMode="Single"
                       FontFamily="Segoe UI"
@@ -79,6 +352,19 @@
                         <Setter Property="BorderThickness" Value="0,0,0,1"/>
                     </Style>
                 </DataGrid.ColumnHeaderStyle>
+
+                <DataGrid.RowHeaderStyle>
+                    <Style TargetType="DataGridRowHeader">
+                        <Setter Property="Background" Value="#161929"/>
+                        <Setter Property="Foreground" Value="#6B7280"/>
+                        <Setter Property="FontFamily" Value="Segoe UI"/>
+                        <Setter Property="FontSize" Value="11"/>
+                        <Setter Property="Width" Value="44"/>
+                        <Setter Property="HorizontalContentAlignment" Value="Center"/>
+                        <Setter Property="BorderBrush" Value="#2D3348"/>
+                        <Setter Property="BorderThickness" Value="0,0,1,0"/>
+                    </Style>
+                </DataGrid.RowHeaderStyle>
 
                 <DataGrid.CellStyle>
                     <Style TargetType="DataGridCell">
@@ -114,11 +400,27 @@
                 </DataGrid.RowStyle>
 
                 <DataGrid.Columns>
-                    <DataGridTextColumn Header="#" Binding="{Binding UserId}" Width="60"/>
                     <DataGridTextColumn Header="F.I.O" Binding="{Binding UserName}" Width="*"/>
                     <DataGridTextColumn Header="Telefon" Binding="{Binding UserPhone}" Width="160"/>
                     <DataGridTextColumn Header="Harakat" Binding="{Binding Event}" Width="100"/>
                     <DataGridTextColumn Header="Shartnomalar" Binding="{Binding Contracts}" Width="120"/>
+                    <DataGridTemplateColumn Header="Tahrir" Width="60" CanUserSort="False" CanUserResize="False">
+                        <DataGridTemplateColumn.CellTemplate>
+                            <DataTemplate>
+                                <Button Tag="{Binding}"
+                                        Click="BtnEdit_Click"
+                                        PreviewMouseDoubleClick="BtnEdit_PreviewDoubleClick"
+                                        Width="34" Height="28"
+                                        HorizontalAlignment="Center" VerticalAlignment="Center"
+                                        ToolTip="Tahrirlash"
+                                        Background="#1E3A5F" BorderThickness="0"
+                                        Cursor="Hand" Foreground="White">
+                                    <TextBlock Text="&#x270E;" FontSize="14"
+                                               VerticalAlignment="Center" HorizontalAlignment="Center"/>
+                                </Button>
+                            </DataTemplate>
+                        </DataGridTemplateColumn.CellTemplate>
+                    </DataGridTemplateColumn>
                 </DataGrid.Columns>
             </DataGrid>
         </Border>
@@ -134,5 +436,324 @@
                            HorizontalAlignment="Right" DockPanel.Dock="Right"/>
             </DockPanel>
         </Border>
+
+        <!-- ═══════════════════════════════════════════════════════════
+             Yangi unduruvchi yaratish — modal overlay
+             ═══════════════════════════════════════════════════════════ -->
+        <Grid x:Name="CreateUserOverlay"
+              Grid.RowSpan="4"
+              Visibility="Collapsed"
+              Background="#C8000000">
+
+            <Border Width="460"
+                    Background="#12151F"
+                    CornerRadius="16"
+                    HorizontalAlignment="Center"
+                    VerticalAlignment="Center">
+                <Border.Effect>
+                    <DropShadowEffect Color="Black" BlurRadius="60"
+                                      ShadowDepth="0" Opacity="0.8"/>
+                </Border.Effect>
+
+                <Grid>
+                    <Grid.RowDefinitions>
+                        <RowDefinition Height="Auto"/>  <!-- header -->
+                        <RowDefinition Height="Auto"/>  <!-- divider -->
+                        <RowDefinition Height="Auto"/>  <!-- body   -->
+                        <RowDefinition Height="Auto"/>  <!-- divider -->
+                        <RowDefinition Height="Auto"/>  <!-- footer -->
+                    </Grid.RowDefinitions>
+
+                    <!-- ── Header ── -->
+                    <DockPanel Grid.Row="0" Margin="24,20,20,20">
+                        <!-- Yopish tugmasi -->
+                        <Button DockPanel.Dock="Right"
+                                Width="32" Height="32"
+                                Content="&#xE711;"
+                                Click="BtnCancelCreate_Click"
+                                Cursor="Hand"
+                                Background="Transparent"
+                                BorderThickness="0"
+                                FontFamily="Segoe MDL2 Assets"
+                                FontSize="12"
+                                Foreground="#6B7280"
+                                FocusVisualStyle="{x:Null}"
+                                VerticalAlignment="Center">
+                            <Button.Template>
+                                <ControlTemplate TargetType="Button">
+                                    <Border x:Name="Bd" Background="Transparent"
+                                            CornerRadius="8" Width="32" Height="32">
+                                        <ContentPresenter HorizontalAlignment="Center"
+                                                          VerticalAlignment="Center"
+                                                          TextBlock.Foreground="#6B7280"
+                                                          TextBlock.FontFamily="Segoe MDL2 Assets"
+                                                          TextBlock.FontSize="12"/>
+                                    </Border>
+                                    <ControlTemplate.Triggers>
+                                        <Trigger Property="IsMouseOver" Value="True">
+                                            <Setter TargetName="Bd" Property="Background" Value="#1E2235"/>
+                                        </Trigger>
+                                    </ControlTemplate.Triggers>
+                                </ControlTemplate>
+                            </Button.Template>
+                        </Button>
+
+                        <!-- Icon + sarlavha -->
+                        <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
+                            <Border Width="36" Height="36" CornerRadius="10"
+                                    Background="#1E3A5F" Margin="0,0,12,0">
+                                <TextBlock Text="&#xE716;"
+                                           FontFamily="Segoe MDL2 Assets"
+                                           FontSize="16"
+                                           Foreground="#60A5FA"
+                                           HorizontalAlignment="Center"
+                                           VerticalAlignment="Center"/>
+                            </Border>
+                            <StackPanel>
+                                <TextBlock x:Name="TxtOverlayTitle"
+                                           Text="Yangi unduruvchi"
+                                           FontFamily="Segoe UI Semibold"
+                                           FontSize="16"
+                                           Foreground="#F9FAFB"/>
+                                <TextBlock x:Name="TxtOverlaySubtitle"
+                                           Text="Ma'lumotlarni to'ldiring"
+                                           FontFamily="Segoe UI"
+                                           FontSize="11"
+                                           Foreground="#4B5563"
+                                           Margin="0,2,0,0"/>
+                            </StackPanel>
+                        </StackPanel>
+                    </DockPanel>
+
+                    <!-- Divider -->
+                    <Border Grid.Row="1" Height="1" Background="#1E2235" Margin="0"/>
+
+                    <!-- ── Body (forma maydonlari) ── -->
+                    <StackPanel Grid.Row="2" Margin="24,20,24,20">
+
+                        <!-- Ism familya -->
+                        <TextBlock Text="ISM FAMILYA"
+                                   FontFamily="Segoe UI Semibold" FontSize="10"
+                                   Foreground="#4B5563" Margin="0,0,0,6"/>
+                        <Grid Margin="0,0,0,16">
+                            <TextBox x:Name="TxtUserName"
+                                     Style="{StaticResource DialogInput}"
+                                     Height="42"
+                                     TextChanged="TxtUserName_TextChanged"/>
+                            <TextBlock x:Name="HintUserName"
+                                       Text="Ism va familyani kiriting"
+                                       Foreground="#2E3450" FontFamily="Segoe UI"
+                                       FontSize="13" Margin="13,0,0,0"
+                                       VerticalAlignment="Center"
+                                       IsHitTestVisible="False"/>
+                        </Grid>
+
+                        <!-- Telefon: +998 chip + format -->
+                        <TextBlock Text="TELEFON RAQAM"
+                                   FontFamily="Segoe UI Semibold" FontSize="10"
+                                   Foreground="#4B5563" Margin="0,0,0,6"/>
+                        <Border x:Name="UserPhoneBorder"
+                                Background="#1E2235"
+                                BorderBrush="#2D3348"
+                                BorderThickness="1"
+                                CornerRadius="8"
+                                Height="42"
+                                Margin="0,0,0,16">
+                            <Grid>
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="Auto"/>
+                                    <ColumnDefinition Width="Auto"/>
+                                    <ColumnDefinition Width="*"/>
+                                </Grid.ColumnDefinitions>
+
+                                <!-- +998 chip -->
+                                <Border Grid.Column="0"
+                                        Background="#252A40"
+                                        CornerRadius="7,0,0,7"
+                                        Padding="12,0">
+                                    <TextBlock Text="+998"
+                                               Foreground="#60A5FA"
+                                               FontFamily="Segoe UI Semibold"
+                                               FontSize="13"
+                                               VerticalAlignment="Center"/>
+                                </Border>
+
+                                <!-- Divider -->
+                                <Rectangle Grid.Column="1" Width="1"
+                                           Fill="#2D3348"
+                                           VerticalAlignment="Stretch"
+                                           Margin="0,8"/>
+
+                                <!-- Input + placeholder -->
+                                <Grid Grid.Column="2">
+                                    <TextBlock x:Name="HintUserPhone"
+                                               Text="(xx) xxx-xx-xx"
+                                               Foreground="#2E3450"
+                                               FontFamily="Segoe UI" FontSize="13"
+                                               Margin="13,0,0,0"
+                                               VerticalAlignment="Center"
+                                               IsHitTestVisible="False"/>
+                                    <TextBox x:Name="TxtUserPhone"
+                                             Background="Transparent"
+                                             BorderThickness="0"
+                                             Foreground="#F3F4F6"
+                                             CaretBrush="#F3F4F6"
+                                             SelectionBrush="#2563EB"
+                                             FontFamily="Segoe UI" FontSize="13"
+                                             VerticalContentAlignment="Center"
+                                             Padding="12,0" MaxLength="14"
+                                             OverridesDefaultStyle="True"
+                                             TextChanged="TxtUserPhone_TextChanged"
+                                             PreviewKeyDown="TxtUserPhone_PreviewKeyDown"
+                                             GotFocus="TxtUserPhone_GotFocus"
+                                             LostFocus="TxtUserPhone_LostFocus">
+                                        <TextBox.Template>
+                                            <ControlTemplate TargetType="TextBox">
+                                                <ScrollViewer x:Name="PART_ContentHost"
+                                                              Background="Transparent"
+                                                              Margin="{TemplateBinding Padding}"
+                                                              VerticalAlignment="Center"
+                                                              HorizontalScrollBarVisibility="Hidden"
+                                                              VerticalScrollBarVisibility="Hidden"
+                                                              TextElement.Foreground="{TemplateBinding Foreground}"/>
+                                            </ControlTemplate>
+                                        </TextBox.Template>
+                                    </TextBox>
+                                </Grid>
+                            </Grid>
+                        </Border>
+
+                        <!-- Parol: eye icon toggle -->
+                        <TextBlock Text="PAROL"
+                                   FontFamily="Segoe UI Semibold" FontSize="10"
+                                   Foreground="#4B5563" Margin="0,0,0,6"/>
+                        <Grid Height="42" Margin="0,0,0,16">
+                            <PasswordBox x:Name="PbUserPassword"
+                                         Style="{StaticResource DarkPasswordBox}"
+                                         Height="42"
+                                         PasswordChanged="PbUserPassword_PasswordChanged"/>
+                            <TextBox x:Name="TxtUserPasswordVisible"
+                                     Style="{StaticResource DialogInput}"
+                                     Height="42"
+                                     Visibility="Collapsed"/>
+                            <!-- Placeholder (faqat bo'sh bo'lsa ko'rinadi) -->
+                            <TextBlock x:Name="HintUserPassword"
+                                       Text="Kamida 6 ta belgi"
+                                       Foreground="#2E3450"
+                                       FontFamily="Segoe UI" FontSize="13"
+                                       Margin="13,0,42,0"
+                                       VerticalAlignment="Center"
+                                       IsHitTestVisible="False"/>
+                            <!-- Ko'z tugmasi -->
+                            <Button x:Name="BtnToggleUserPassword"
+                                    Click="BtnToggleUserPassword_Click"
+                                    HorizontalAlignment="Right"
+                                    VerticalAlignment="Center"
+                                    Width="36" Height="36"
+                                    Margin="0,0,4,0"
+                                    Focusable="False"
+                                    Background="Transparent"
+                                    BorderThickness="0"
+                                    Cursor="Hand">
+                                <Button.Template>
+                                    <ControlTemplate TargetType="Button">
+                                        <Border Background="Transparent" CornerRadius="6" x:Name="EyeBg">
+                                            <TextBlock x:Name="EyeIcon"
+                                                       Text="&#xE7B3;"
+                                                       FontFamily="Segoe MDL2 Assets"
+                                                       FontSize="15"
+                                                       Foreground="#3D4460"
+                                                       HorizontalAlignment="Center"
+                                                       VerticalAlignment="Center"/>
+                                        </Border>
+                                        <ControlTemplate.Triggers>
+                                            <Trigger Property="IsMouseOver" Value="True">
+                                                <Setter TargetName="EyeIcon" Property="Foreground" Value="#9CA3AF"/>
+                                            </Trigger>
+                                        </ControlTemplate.Triggers>
+                                    </ControlTemplate>
+                                </Button.Template>
+                            </Button>
+                        </Grid>
+
+                        <!-- Rol + Faol (2 ustun) -->
+                        <Grid>
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="*"/>
+                                <ColumnDefinition Width="12"/>
+                                <ColumnDefinition Width="Auto"/>
+                            </Grid.ColumnDefinitions>
+
+                            <StackPanel Grid.Column="0">
+                                <TextBlock Text="ROL"
+                                           FontFamily="Segoe UI Semibold" FontSize="10"
+                                           Foreground="#4B5563" Margin="0,0,0,6"/>
+                                <ComboBox x:Name="CbUserRole"
+                                          Style="{StaticResource DarkComboBox}"
+                                          Height="42" MaxDropDownHeight="120"
+                                          SelectedIndex="0">
+                                    <ComboBoxItem Content="user"  Tag="user"/>
+                                    <ComboBoxItem Content="admin" Tag="admin"/>
+                                </ComboBox>
+                            </StackPanel>
+
+                            <StackPanel Grid.Column="2" VerticalAlignment="Bottom">
+                                <TextBlock Text="HOLAT"
+                                           FontFamily="Segoe UI Semibold" FontSize="10"
+                                           Foreground="#4B5563" Margin="0,0,0,6"/>
+                                <Border Height="42" Background="#1E2235"
+                                        BorderBrush="#2D3348" BorderThickness="1"
+                                        CornerRadius="8" Padding="14,0" MinWidth="118">
+                                    <CheckBox x:Name="ChkIsActive"
+                                              Style="{StaticResource DarkCheckBox}"
+                                              Content="Faol"
+                                              IsChecked="True"
+                                              VerticalAlignment="Center"/>
+                                </Border>
+                            </StackPanel>
+                        </Grid>
+
+                        <!-- Xato xabari -->
+                        <Border x:Name="ErrorPanel"
+                                Background="#2D1515" BorderBrush="#7F1D1D"
+                                BorderThickness="1" CornerRadius="8"
+                                Padding="12,10" Margin="0,16,0,0"
+                                Visibility="Collapsed">
+                            <StackPanel Orientation="Horizontal">
+                                <TextBlock Text="&#xE783;"
+                                           FontFamily="Segoe MDL2 Assets" FontSize="13"
+                                           Foreground="#EF4444" VerticalAlignment="Center"
+                                           Margin="0,0,8,0"/>
+                                <TextBlock x:Name="TxtCreateError"
+                                           Foreground="#FCA5A5" FontFamily="Segoe UI"
+                                           FontSize="12" TextWrapping="Wrap"
+                                           VerticalAlignment="Center"/>
+                            </StackPanel>
+                        </Border>
+
+                    </StackPanel>
+
+                    <!-- Divider -->
+                    <Border Grid.Row="3" Height="1" Background="#1E2235" Margin="0"/>
+
+                    <!-- ── Footer (tugmalar) ── -->
+                    <DockPanel Grid.Row="4" Margin="24,16,24,20" LastChildFill="False">
+                        <Button x:Name="BtnSaveUser"
+                                Content="Saqlash"
+                                Style="{StaticResource PrimaryButton}"
+                                Click="BtnSaveUser_Click"
+                                DockPanel.Dock="Right"
+                                Padding="24,10"/>
+                        <Button Content="Bekor qilish"
+                                Style="{StaticResource SecondaryButton}"
+                                Click="BtnCancelCreate_Click"
+                                DockPanel.Dock="Right"
+                                Padding="18,10"
+                                Margin="0,0,10,0"/>
+                    </DockPanel>
+
+                </Grid>
+            </Border>
+        </Grid>
     </Grid>
 </UserControl>

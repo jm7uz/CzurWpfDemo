@@ -277,15 +277,16 @@ public partial class ScannerPage : UserControl
             {
                 try
                 {
-                    // Maksimum 3 soniya kutamiz — undan keyin o'zimiz tugatamiz
-                    await Task.WhenAny(_captureTask, Task.Delay(3000));
+                    // WhenAny EMAS — WaitAsync: loop to'liq chiqqanini kutamiz.
+                    // WhenAny timeout keyin cap.Read() hali native-blockda bo'lsa
+                    // cap.Dispose() uni race qiladi → ExecutionEngineException (native crash)
+                    await _captureTask.WaitAsync(TimeSpan.FromSeconds(5));
                 }
                 catch { }
                 _captureTask = null;
             }
 
-            // Release() va Dispose() IKKALASINI chaqirmang —
-            // OpenCvSharp da Dispose() ichida Release() ham chaqiriladi → double-free crash
+            // Loop to'liq chiqqandan keyin dispose — endi xavfsiz
             var cap = _capture;
             _capture = null;
             try { cap?.Dispose(); } catch { }
@@ -1439,45 +1440,53 @@ public partial class ScannerPage : UserControl
     }
 
     // ─── Superadmin: PDF ↔ Scan rejim almashtirish ───────────────────
+    private bool _isTogglingMode; // tez-tez bosishdan himoya
+
     private async void BtnToggleScanMode_Click(object sender, RoutedEventArgs e)
     {
-        if (_isPdfViewMode)
+        if (_isTogglingMode) return;
+        _isTogglingMode = true;
+        BtnToggleScanMode.IsEnabled = false;
+
+        try
         {
-            // PDF → Scan rejim
-            _isPdfViewMode = false;
-            PdfViewerPanel.Visibility    = Visibility.Collapsed;
-            CameraPanel.Visibility       = Visibility.Visible;
-            BranchFilterPanel.Visibility = Visibility.Visible;
-
-            // Icon: hisobot (bosib PDF rejimga qaytish)
-            TxtToggleIcon.Text    = "\uE9F9";  // Segoe MDL2 — Report
-            BtnToggleScanMode.ToolTip = "PDF ko'rish rejimine o'tish";
-
-            Log("📷 Skanerlash rejimi yoqildi");
-            await StartCameraAsync();
-        }
-        else
-        {
-            // Scan → PDF rejim
-            _isPdfViewMode = true;
-            await StopCameraAsync();
-
-            CameraPanel.Visibility       = Visibility.Collapsed;
-            PdfViewerPanel.Visibility    = Visibility.Visible;
-            BranchFilterPanel.Visibility = Visibility.Collapsed;
-
-            // Icon: kamera (bosib scan rejimga o'tish)
-            TxtToggleIcon.Text    = "\uE722";  // Segoe MDL2 — Camera
-            BtnToggleScanMode.ToolTip = "Skanerlash rejimine o'tish";
-
-            // Tanlangan card ning PDF ini ko'rsatish
-            if (_selectedDocumentType != null)
+            if (_isPdfViewMode)
             {
-                var url = GetCardFileUrl(_selectedDocumentType.Id);
-                ShowPdfInViewer(url);
-            }
+                // PDF → Scan rejim
+                _isPdfViewMode = false;
+                PdfViewerPanel.Visibility    = Visibility.Collapsed;
+                CameraPanel.Visibility       = Visibility.Visible;
+                BranchFilterPanel.Visibility = Visibility.Visible;
 
-            Log("📄 PDF ko'rish rejimi yoqildi");
+                TxtToggleIcon.Text        = "\uE9F9";
+                BtnToggleScanMode.ToolTip = "PDF ko'rish rejimine o'tish";
+
+                Log("📷 Skanerlash rejimi yoqildi");
+                await StartCameraAsync();
+            }
+            else
+            {
+                // Scan → PDF rejim
+                _isPdfViewMode = true;
+                await StopCameraAsync();
+
+                CameraPanel.Visibility       = Visibility.Collapsed;
+                PdfViewerPanel.Visibility    = Visibility.Visible;
+                BranchFilterPanel.Visibility = Visibility.Collapsed;
+
+                TxtToggleIcon.Text        = "\uE722";
+                BtnToggleScanMode.ToolTip = "Skanerlash rejimine o'tish";
+
+                if (_selectedDocumentType != null)
+                    ShowPdfInViewer(GetCardFileUrl(_selectedDocumentType.Id));
+
+                Log("📄 PDF ko'rish rejimi yoqildi");
+            }
+        }
+        finally
+        {
+            _isTogglingMode = false;
+            BtnToggleScanMode.IsEnabled = true;
         }
     }
 
