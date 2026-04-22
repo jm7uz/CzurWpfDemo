@@ -56,6 +56,8 @@ public partial class ScannerPage : UserControl
     private readonly Dictionary<int, Button> _cardReloadBtns = new();      // tozalash tugmasi referenslari
     private readonly HashSet<int> _initiallyUploadedCardIds = new();        // dastlab yuklangan card IDlar
     private int _captureCount;
+    private int _previewWidth  = 1920;
+    private int _previewHeight = 1080;
     private readonly System.Windows.Point[] _cropPoints = new System.Windows.Point[4];
 
     // ─── Scan-line animatsiyasi ──────────────────────────────────
@@ -190,6 +192,8 @@ public partial class ScannerPage : UserControl
     {
         int cameraIndex = 0;
         var (width, height) = _resolutions[3]; // 1920×1080
+        _previewWidth  = width;
+        _previewHeight = height;
 
         SetStatus("Ulanmoqda...", "#F59E0B");
         Log($"Kamera {cameraIndex} ochilmoqda ({width}×{height})...");
@@ -901,6 +905,66 @@ public partial class ScannerPage : UserControl
         }
     }
 
+    // ─── Yuqori ruxsatda bir kadr olish ──────────────────────────
+    private async Task<(Mat? mat, bool isHighRes)> GrabHighResFrameAsync()
+    {
+        var (hw, hh) = _resolutions[0]; // 5696×4272
+
+        // Preview loop'ni to'xtatish (_capture ni dispose qilmasdan)
+        var oldCts = _cts;
+        _isRunning = false;
+        oldCts?.Cancel();
+        if (_captureTask != null)
+        {
+            try { await _captureTask.WaitAsync(TimeSpan.FromSeconds(4)); } catch { }
+            _captureTask = null;
+        }
+
+        Mat? result   = null;
+        bool isHighRes = false;
+
+        await Task.Run(() =>
+        {
+            var cap = _capture;
+            if (cap == null) return;
+
+            // Yuqori ruxsatga o'tish
+            cap.Set(VideoCaptureProperties.FrameWidth,  hw);
+            cap.Set(VideoCaptureProperties.FrameHeight, hh);
+            cap.Set(VideoCaptureProperties.Fps, 2);
+            cap.BufferSize = 1;
+
+            // Buffer'dagi eski kadrlarni tozalash
+            using var tmp = new Mat();
+            for (int i = 0; i < 3; i++) cap.Read(tmp);
+
+            // Asosiy kadr
+            var frame = new Mat();
+            if (cap.Read(frame) && !frame.Empty())
+            {
+                result    = frame;
+                isHighRes = frame.Width > _previewWidth;
+            }
+            else
+            {
+                frame.Dispose();
+            }
+
+            // Preview ruxsatiga qaytish
+            cap.Set(VideoCaptureProperties.FrameWidth,  _previewWidth);
+            cap.Set(VideoCaptureProperties.FrameHeight, _previewHeight);
+            cap.Set(VideoCaptureProperties.Fps, 20);
+            cap.BufferSize = 1;
+        });
+
+        // Preview loop'ni qayta ishga tushirish
+        _isRunning = true;
+        _cts = new CancellationTokenSource();
+        _captureTask = Task.Run(() => CaptureLoop(_cts.Token));
+
+        return (result, isHighRes);
+    }
+
     // ─── Rasm Olish ───────────────────────────────────────────────
     private async void BtnCapture_Click(object sender, RoutedEventArgs e)
     {
@@ -911,19 +975,46 @@ public partial class ScannerPage : UserControl
             return;
         }
 
+        BtnCapture.IsEnabled = false;
+        SetStatus("Yuqori sifatda rasmga olinyapti...", "#F59E0B");
+
+        Mat?  hiMat    = null;
+        bool isHighRes = false;
+        try { (hiMat, isHighRes) = await GrabHighResFrameAsync(); } catch { }
+
         Mat captureMat;
-        lock (_matLock)
+        if (hiMat != null && !hiMat.Empty())
         {
-            if (_lastMat == null || _lastMat.Empty()) return;
-            captureMat = _lastMat.Clone();
+            captureMat = hiMat;
         }
+        else
+        {
+            hiMat?.Dispose();
+            lock (_matLock)
+            {
+                if (_lastMat == null || _lastMat.Empty())
+                {
+                    BtnCapture.IsEnabled = true;
+                    SetStatus("Jonli efir", "#10B981");
+                    return;
+                }
+                captureMat = _lastMat.Clone();
+            }
+            isHighRes = false;
+        }
+
+        BtnCapture.IsEnabled = true;
+        SetStatus("Jonli efir", "#10B981");
+
+        double scaleX = isHighRes ? (double)captureMat.Width  / _previewWidth  : 1.0;
+        double scaleY = isHighRes ? (double)captureMat.Height / _previewHeight : 1.0;
 
         var srcPts = new[]
         {
-            new Point2f((float)_cropPoints[0].X, (float)_cropPoints[0].Y),
-            new Point2f((float)_cropPoints[1].X, (float)_cropPoints[1].Y),
-            new Point2f((float)_cropPoints[2].X, (float)_cropPoints[2].Y),
-            new Point2f((float)_cropPoints[3].X, (float)_cropPoints[3].Y)
+            new Point2f((float)(_cropPoints[0].X * scaleX), (float)(_cropPoints[0].Y * scaleY)),
+            new Point2f((float)(_cropPoints[1].X * scaleX), (float)(_cropPoints[1].Y * scaleY)),
+            new Point2f((float)(_cropPoints[2].X * scaleX), (float)(_cropPoints[2].Y * scaleY)),
+            new Point2f((float)(_cropPoints[3].X * scaleX), (float)(_cropPoints[3].Y * scaleY))
         };
 
         double wTop = Math.Sqrt(Math.Pow(srcPts[1].X - srcPts[0].X, 2) + Math.Pow(srcPts[1].Y - srcPts[0].Y, 2));
