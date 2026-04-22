@@ -1324,8 +1324,12 @@ public partial class ScannerPage : UserControl
                     _initiallyUploadedCardIds.Add(cardId); // keyingi saqlashtda UPDATE ishlatilsin
                     DisposeCardImages(cardId);
                     UpdateReloadBtnVisibility(cardId);
-                    BtnSave.IsEnabled = false;
-                    TxtCaptureCount.Text = "0";
+                    if (_selectedDocumentType?.Id == cardId)
+                    {
+                        _captureCount        = 0;
+                        BtnSave.IsEnabled    = false;
+                        TxtCaptureCount.Text = "0";
+                    }
                     var action = existingDetail != null ? "Yangilandi" : "Saqlandi";
                     Log($"✅ Karta {action}! (rasm: {images.Count}, filial: {branchName})");
                 });

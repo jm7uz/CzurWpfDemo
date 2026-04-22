@@ -196,6 +196,8 @@ public partial class ContractDetailsPage : UserControl
 
                     var folderPath = Path.Combine(@"C:\shartnomalar",
                         SanitizeName($"{item.DocumentNumber}_{item.Name}"));
+                    if (Directory.Exists(folderPath))
+                        Directory.Delete(folderPath, recursive: true);
                     Directory.CreateDirectory(folderPath);
 
                     foreach (var entry in pdfEntries)
@@ -204,7 +206,7 @@ public partial class ContractDetailsPage : UserControl
                         if (bytes == null || bytes.Length == 0) continue;
 
                         var pdfName  = SanitizeName(string.IsNullOrWhiteSpace(entry.PunktName) ? "hujjat" : entry.PunktName);
-                        var filePath = GetUniquePath(folderPath, pdfName);
+                        var filePath = Path.Combine(folderPath, pdfName + ".pdf");
                         await File.WriteAllBytesAsync(filePath, bytes);
                         totalSaved++;
                     }
@@ -262,6 +264,8 @@ public partial class ContractDetailsPage : UserControl
             // C:\shartnomalar\{DocumentNumber}_{Name}\
             var folderName = SanitizeName($"{item.DocumentNumber}_{item.Name}");
             var folderPath = Path.Combine(@"C:\shartnomalar", folderName);
+            if (Directory.Exists(folderPath))
+                Directory.Delete(folderPath, recursive: true);
             Directory.CreateDirectory(folderPath);
 
             int saved = 0;
@@ -272,7 +276,7 @@ public partial class ContractDetailsPage : UserControl
 
                 var pdfName = SanitizeName(
                     string.IsNullOrWhiteSpace(entry.PunktName) ? "hujjat" : entry.PunktName);
-                var filePath = GetUniquePath(folderPath, pdfName);
+                var filePath = Path.Combine(folderPath, pdfName + ".pdf");
                 await File.WriteAllBytesAsync(filePath, bytes);
                 saved++;
             }
