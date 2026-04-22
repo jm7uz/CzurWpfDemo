@@ -9,7 +9,7 @@ public class ApiService
 {
     private static readonly HttpClient _client = new();
     // dotnet publish CzurWpfDemo.csproj -c Release -r win-x64 --self-contained true -p:PublishReadyToRun=true -o ./publish/CzurWpfDemo // .exe yaratish uchun
-    // public const string BaseUrl = "http://10.100.104.104:9505/api/"; // local
+     //public const string BaseUrl = "http://10.100.104.104:9505/api/"; // local
     public const string BaseUrl = "http://sud-upload-file.garant.uz/api/";// production
 
     private static readonly JsonSerializerOptions _jsonOptions = new()
