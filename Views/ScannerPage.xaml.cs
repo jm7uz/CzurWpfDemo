@@ -1351,23 +1351,30 @@ public partial class ScannerPage : UserControl
             pdfPath = Path.Combine(Path.GetTempPath(), $"czur_{cardId}_{DateTime.Now:yyyyMMddHHmmss}.pdf");
             await Task.Run(() => CreatePdf(images, pdfPath));
 
-            // 2. PDF ni serverga yuklash (base64 orqali — hajm cheklovi yo'q)
-            var uploadResult = await UploadService.UploadPdfBase64Async(pdfPath, _contract!.Id, _contract.Name);
-            if (uploadResult?.Success != true || string.IsNullOrEmpty(uploadResult.Resoult?.Url))
+            // 2a. PDF ni base64 orqali yuklash
+            var base64Result = await UploadService.UploadPdfBase64Async(
+                pdfPath, _contract!.DocumentNumber, $"{_contract.Name}_{cardId}");
+            if (base64Result?.Success != true || string.IsNullOrEmpty(base64Result.Resoult?.Url))
             {
                 await Dispatcher.InvokeAsync(() =>
                 {
                     SetCardState(cardId, "failed");
-                    Log($"❌ PDF yuklashda xatolik: {uploadResult?.Message ?? "server javobi yo'q"}");
+                    DisposeCardImages(cardId);
+                    UpdateReloadBtnVisibility(cardId);
+                    if (_selectedDocumentType?.Id == cardId)
+                    {
+                        BtnSave.IsEnabled    = false;
+                        TxtCaptureCount.Text = "0";
+                    }
+                    Log($"❌ Base64 yuklashda xatolik: {base64Result?.Message ?? "server javobi yo'q"}");
                 });
                 return;
             }
 
-            // 3. To'liq URL ni ishlatish
-            var filePath = uploadResult.Resoult.Url;
+            // 3. upload/base64 dan qaytgan URL ni store ga yuborish
+            var filePath = base64Result.Resoult.Url;
 
-            // 4. Mavjud yozuv bo'lsa UPDATE, bo'lmasa STORE
-            // constant_details va details ikkalasidan qidiramiz, eng oxirgi ID ni olamiz
+            // 4. Mavjud bo'lsa UPDATE, bo'lmasa STORE
             bool savedOk = false;
             var existingDetail = _initiallyUploadedCardIds.Contains(cardId)
                 ? (_fetchedConstantDetails ?? new List<ContractDetailEntry>())
@@ -1398,7 +1405,6 @@ public partial class ScannerPage : UserControl
 
             if (savedOk)
             {
-                // Keyingi saqlashda to'g'ri UPDATE bo'lishi uchun ikkalasini yangilash
                 try
                 {
                     var refreshed = await GetContractService.SearchAllAsync(_contract!.DocumentNumber);
@@ -1406,13 +1412,13 @@ public partial class ScannerPage : UserControl
                     _fetchedConstantDetails = refreshedContract?.ConstantDetails;
                     _fetchedDetails         = refreshedContract?.Details;
                 }
-                catch { /* yangilash bo'lmasa ham davom etamiz */ }
+                catch { }
 
                 await Dispatcher.InvokeAsync(() =>
                 {
                     SetCardState(cardId, "done");
                     SetCardCountBadge(cardId, images.Count);
-                    _initiallyUploadedCardIds.Add(cardId); // keyingi saqlashtda UPDATE ishlatilsin
+                    _initiallyUploadedCardIds.Add(cardId);
                     DisposeCardImages(cardId);
                     UpdateReloadBtnVisibility(cardId);
                     if (_selectedDocumentType?.Id == cardId)

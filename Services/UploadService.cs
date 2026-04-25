@@ -97,7 +97,8 @@ public class UploadService
     /// <summary>
     /// PDF faylni base64 formatida upload/base64 ga yuklash (hajm cheklovsiz)
     /// </summary>
-    public static async Task<UploadResponse?> UploadPdfBase64Async(string pdfFilePath, int contractId, string clientName)
+    public static async Task<UploadResponse?> UploadPdfBase64Async(
+        string pdfFilePath, string contractId, string clientName)
     {
         try
         {
@@ -106,9 +107,9 @@ public class UploadService
 
             var request = new Models.UploadBase64Request
             {
-                ContractId = contractId,
-                ClientName = clientName,
-                File       = $"data:application/pdf;base64,{base64}"
+                File       = $"data:application/pdf;base64,{base64}",
+                ContractId = contractId.Length > 0 ? contractId : null,
+                ClientName = clientName.Length > 0 ? clientName : null
             };
 
             return await ApiService.PostAsync<UploadResponse>("upload/base64", request);
