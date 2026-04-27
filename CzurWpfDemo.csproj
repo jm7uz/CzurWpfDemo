@@ -22,6 +22,21 @@
   -->
 
 	<ItemGroup>
+		<Compile Remove="Scanner\**" />
+		<Compile Remove="Viewer\**" />
+		<Compile Remove="Shared\**" />
+		<Page Remove="Scanner\**" />
+		<Page Remove="Viewer\**" />
+		<Page Remove="Shared\**" />
+		<EmbeddedResource Remove="Scanner\**" />
+		<EmbeddedResource Remove="Viewer\**" />
+		<EmbeddedResource Remove="Shared\**" />
+		<None Remove="Scanner\**" />
+		<None Remove="Viewer\**" />
+		<None Remove="Shared\**" />
+	</ItemGroup>
+
+	<ItemGroup>
 		<!-- OpenCV .NET wrapperi — UVC kamera uchun asosiy kutubxona -->
 		<PackageReference Include="Interop.WIA" Version="1.0.0" />
 		<PackageReference Include="OpenCvSharp4" Version="4.9.0.20240103" />

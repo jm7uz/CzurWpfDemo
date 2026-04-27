@@ -8,8 +8,8 @@ namespace CzurWpfDemo.Services;
 public class ApiService
 {
     private static readonly HttpClient _client = new();
-    //public const string BaseUrl = "http://10.100.104.104:9505/api/";
-    public const string BaseUrl = "http://sud-upload-file.garant.uz/api/";
+    public const string BaseUrl = "http://10.100.104.104:9505/api/";
+
     private static readonly JsonSerializerOptions _jsonOptions = new()
     {
         PropertyNamingPolicy = JsonNamingPolicy.SnakeCaseLower,
@@ -29,33 +29,12 @@ public class ApiService
         return JsonSerializer.Deserialize<T>(json, _jsonOptions);
     }
 
-    public static async Task<T?> GetAsync<T>(string endpoint, Dictionary<string, string> headers)
-    {
-        var request = new HttpRequestMessage(HttpMethod.Get, BaseUrl + endpoint);
-        foreach (var (key, value) in headers)
-            request.Headers.TryAddWithoutValidation(key, value);
-        var response = await _client.SendAsync(request);
-        var json = await response.Content.ReadAsStringAsync();
-        return JsonSerializer.Deserialize<T>(json, _jsonOptions);
-    }
-
     public static async Task<T?> PostAsync<T>(string endpoint, object body)
     {
         var json = JsonSerializer.Serialize(body, _jsonOptions);
         var content = new StringContent(json, Encoding.UTF8, "application/json");
 
         var response = await _client.PostAsync(BaseUrl + endpoint, content);
-        var responseJson = await response.Content.ReadAsStringAsync();
-
-        return JsonSerializer.Deserialize<T>(responseJson, _jsonOptions);
-    }
-
-    public static async Task<T?> PutAsync<T>(string endpoint, object body)
-    {
-        var json = JsonSerializer.Serialize(body, _jsonOptions);
-        var content = new StringContent(json, Encoding.UTF8, "application/json");
-
-        var response = await _client.PutAsync(BaseUrl + endpoint, content);
         var responseJson = await response.Content.ReadAsStringAsync();
 
         return JsonSerializer.Deserialize<T>(responseJson, _jsonOptions);

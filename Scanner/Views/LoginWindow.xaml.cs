@@ -18,28 +18,16 @@ public partial class LoginWindow : Window
         UpdatePhoneBorderFocus();
     }
 
-    // ──────────────────────────────────────────────
-    //  Telefon raqam real-time formatlash
-    //  Foydalanuvchi: (93) 737-33-22
-    //  Backend: 998937373322
-    // ──────────────────────────────────────────────
-
     private void TxtPhone_TextChanged(object sender, TextChangedEventArgs e)
     {
         if (_isFormatting) return;
         _isFormatting = true;
 
-        // Faqat raqamlarni olish (9 ta)
         string digits = Regex.Replace(TxtPhone.Text, @"\D", "");
         if (digits.Length > 9) digits = digits[..9];
 
-        // Formatlash: (xx) xxx-xx-xx
         string formatted = FormatPhoneDigits(digits);
-
-        int caretOffset = formatted.Length - TxtPhone.Text.Length;
         TxtPhone.Text = formatted;
-
-        // Kursorni oxiriga qo'yish
         TxtPhone.CaretIndex = formatted.Length;
 
         _isFormatting = false;
@@ -47,7 +35,6 @@ public partial class LoginWindow : Window
 
     private static string FormatPhoneDigits(string digits)
     {
-        // digits = max 9 ta son
         return digits.Length switch
         {
             0 => "",
@@ -63,17 +50,14 @@ public partial class LoginWindow : Window
         };
     }
 
-    // Backspace bilan formatlash belgilarini o'tkazib yuborish
     private void TxtPhone_PreviewKeyDown(object sender, KeyEventArgs e)
     {
         if (e.Key == Key.Back && TxtPhone.CaretIndex > 0 && TxtPhone.SelectionLength == 0)
         {
             int pos = TxtPhone.CaretIndex;
             char prev = TxtPhone.Text[pos - 1];
-            // Format belgilari: '(', ')', ' ', '-'
             if (prev == ')' || prev == ' ' || prev == '-' || prev == '(')
             {
-                // Ikki belgi orqaga ketish
                 if (pos >= 2)
                 {
                     TxtPhone.Text = TxtPhone.Text[..(pos - 2)];
@@ -88,16 +72,11 @@ public partial class LoginWindow : Window
         }
     }
 
-    // Backend uchun raqam: 998 + 9 ta raqam
     private string GetRawPhone()
     {
         string digits = Regex.Replace(TxtPhone.Text, @"\D", "");
         return "998" + digits;
     }
-
-    // ──────────────────────────────────────────────
-    //  Parol ko'rish/yashirish
-    // ──────────────────────────────────────────────
 
     private void BtnTogglePassword_Click(object sender, RoutedEventArgs e)
     {
@@ -130,10 +109,6 @@ public partial class LoginWindow : Window
         if (e.Key == Key.Return) _ = LoginAsync();
     }
 
-    // ──────────────────────────────────────────────
-    //  PhoneBorder fokus ko'rinishi (PhoneBorder border rengi)
-    // ──────────────────────────────────────────────
-
     private void UpdatePhoneBorderFocus()
     {
         TxtPhone.GotFocus  += (_, _) => PhoneBorder.BorderBrush =
@@ -143,10 +118,6 @@ public partial class LoginWindow : Window
             new System.Windows.Media.SolidColorBrush(
                 (System.Windows.Media.Color)System.Windows.Media.ColorConverter.ConvertFromString("#252B3B"));
     }
-
-    // ──────────────────────────────────────────────
-    //  Login
-    // ──────────────────────────────────────────────
 
     private async void BtnLogin_Click(object sender, RoutedEventArgs e)
         => await LoginAsync();
@@ -172,24 +143,15 @@ public partial class LoginWindow : Window
 
         try
         {
-            var phone = GetRawPhone(); // "998XXXXXXXXX"
+            var phone = GetRawPhone();
             var response = await AuthService.LoginAsync(phone, password);
 
-            if (response is { Status: true, Resoult: not null }) 
+            if (response is { Status: true, Resoult: not null })
             {
-                var user = await AuthService.GetMeAsync();
+                await AuthService.GetMeAsync();
 
                 var shell = new AppShell();
-
-                if (user?.Role == "superadmin")
-                    shell.ContentArea.Content = new ReportPage();
-                else if (user?.Role == "admin")
-                    shell.ContentArea.Content = new ContractDetailsPage();
-                else if (user?.Role == "user")
-                    shell.ContentArea.Content = new ContractDetailsPage();
-                else
-                    shell.ContentArea.Content = new ScannerPage();
-
+                shell.ContentArea.Content = new BarcodeScanPage();
                 shell.Show();
                 Close();
             }
@@ -198,9 +160,9 @@ public partial class LoginWindow : Window
                 ShowError("Telefon yoki parol noto'g'ri.");
             }
         }
-        catch (Exception ex)
+        catch
         {
-            ShowError($"Serverga ulanib bo'lmadi.");
+            ShowError("Serverga ulanib bo'lmadi.");
         }
         finally
         {
@@ -218,7 +180,6 @@ public partial class LoginWindow : Window
     {
         BtnLogin.IsEnabled = !loading;
 
-        // BtnLogin ichidagi elementlarni topish
         if (BtnLogin.Template.FindName("TxtBtnLabel", BtnLogin) is TextBlock lbl)
             lbl.Visibility = loading ? Visibility.Collapsed : Visibility.Visible;
         if (BtnLogin.Template.FindName("TxtLoading", BtnLogin) is TextBlock ldg)

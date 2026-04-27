@@ -1,7 +1,10 @@
 {
   "permissions": {
     "allow": [
-      "Bash(cd:*)"
+      "Bash(cd:*)",
+      "PowerShell(Copy-Item *)",
+      "Bash(Select-String \"warning\")",
+      "Bash(Select-String -NotMatch \"NU1|NU09\")"
     ]
   }
 }

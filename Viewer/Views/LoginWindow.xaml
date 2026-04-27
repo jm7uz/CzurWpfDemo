@@ -1,0 +1,344 @@
+<Window x:Class="CzurWpfDemo.Views.LoginWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        Title="Tizimga kirish"
+        Height="600" Width="440"
+        Background="#090C14"
+        WindowStartupLocation="CenterScreen"
+        ResizeMode="NoResize">
+
+    <Window.Resources>
+
+        <!-- Label -->
+        <Style x:Key="FieldLabel" TargetType="TextBlock">
+            <Setter Property="Foreground"  Value="#9CA3AF"/>
+            <Setter Property="FontFamily"  Value="Segoe UI"/>
+            <Setter Property="FontSize"    Value="12"/>
+            <Setter Property="FontWeight"  Value="SemiBold"/>
+            <Setter Property="Margin"      Value="0,0,0,7"/>
+        </Style>
+
+        <!-- TextBox with custom template (same pattern as FilterInput in App.xaml) -->
+        <Style x:Key="LoginInput" TargetType="TextBox">
+            <Setter Property="Background"              Value="#131726"/>
+            <Setter Property="Foreground"              Value="#F3F4F6"/>
+            <Setter Property="BorderBrush"             Value="#252B3B"/>
+            <Setter Property="BorderThickness"         Value="1.5"/>
+            <Setter Property="FontFamily"              Value="Segoe UI"/>
+            <Setter Property="FontSize"                Value="14"/>
+            <Setter Property="Height"                  Value="46"/>
+            <Setter Property="Padding"                 Value="14,0"/>
+            <Setter Property="VerticalContentAlignment" Value="Center"/>
+            <Setter Property="CaretBrush"              Value="#F3F4F6"/>
+            <Setter Property="SelectionBrush"          Value="#2563EB"/>
+            <Setter Property="OverridesDefaultStyle"   Value="True"/>
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="TextBox">
+                        <Border x:Name="Bd"
+                                Background="{TemplateBinding Background}"
+                                BorderBrush="{TemplateBinding BorderBrush}"
+                                BorderThickness="{TemplateBinding BorderThickness}"
+                                CornerRadius="10">
+                            <ScrollViewer x:Name="PART_ContentHost"
+                                          Margin="{TemplateBinding Padding}"
+                                          Background="Transparent"
+                                          Focusable="False"
+                                          HorizontalScrollBarVisibility="Hidden"
+                                          VerticalScrollBarVisibility="Hidden"
+                                          VerticalAlignment="Center"
+                                          TextElement.Foreground="{TemplateBinding Foreground}"/>
+                        </Border>
+                        <ControlTemplate.Triggers>
+                            <Trigger Property="IsMouseOver" Value="True">
+                                <Setter TargetName="Bd" Property="BorderBrush" Value="#374151"/>
+                            </Trigger>
+                            <Trigger Property="IsFocused" Value="True">
+                                <Setter TargetName="Bd" Property="BorderBrush" Value="#2563EB"/>
+                                <Setter TargetName="Bd" Property="Background" Value="#141928"/>
+                            </Trigger>
+                        </ControlTemplate.Triggers>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+
+        <!-- PasswordBox -->
+        <Style x:Key="LoginPassword" TargetType="PasswordBox">
+            <Setter Property="Background"      Value="#131726"/>
+            <Setter Property="Foreground"      Value="#F3F4F6"/>
+            <Setter Property="BorderBrush"     Value="#252B3B"/>
+            <Setter Property="BorderThickness" Value="1.5"/>
+            <Setter Property="FontFamily"      Value="Segoe UI"/>
+            <Setter Property="FontSize"        Value="14"/>
+            <Setter Property="Height"          Value="46"/>
+            <Setter Property="Padding"         Value="14,0"/>
+            <Setter Property="CaretBrush"      Value="#F3F4F6"/>
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="PasswordBox">
+                        <Border x:Name="Bd"
+                                Background="{TemplateBinding Background}"
+                                BorderBrush="{TemplateBinding BorderBrush}"
+                                BorderThickness="{TemplateBinding BorderThickness}"
+                                CornerRadius="10">
+                            <ScrollViewer x:Name="PART_ContentHost"
+                                          Margin="{TemplateBinding Padding}"
+                                          Background="Transparent"
+                                          Focusable="False"
+                                          HorizontalScrollBarVisibility="Hidden"
+                                          VerticalScrollBarVisibility="Hidden"
+                                          VerticalAlignment="Center"/>
+                        </Border>
+                        <ControlTemplate.Triggers>
+                            <Trigger Property="IsMouseOver" Value="True">
+                                <Setter TargetName="Bd" Property="BorderBrush" Value="#374151"/>
+                            </Trigger>
+                            <Trigger Property="IsFocused" Value="True">
+                                <Setter TargetName="Bd" Property="BorderBrush" Value="#2563EB"/>
+                                <Setter TargetName="Bd" Property="Background" Value="#141928"/>
+                            </Trigger>
+                        </ControlTemplate.Triggers>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+
+    </Window.Resources>
+
+    <!-- Subtle radial glow behind card -->
+    <Grid>
+        <Ellipse Width="500" Height="500"
+                 HorizontalAlignment="Center" VerticalAlignment="Center"
+                 Margin="0,-60,0,0">
+            <Ellipse.Fill>
+                <RadialGradientBrush>
+                    <GradientStop Color="#0D1A3A" Offset="0"/>
+                    <GradientStop Color="#090C14" Offset="1"/>
+                </RadialGradientBrush>
+            </Ellipse.Fill>
+        </Ellipse>
+
+        <!-- Card -->
+        <Border HorizontalAlignment="Center" VerticalAlignment="Center"
+                Width="360"
+                Background="#0F1117"
+                BorderBrush="#1E2535"
+                BorderThickness="1"
+                CornerRadius="18"
+                Padding="36,38,36,38">
+            <Border.Effect>
+                <DropShadowEffect Color="#000000" Opacity="0.55"
+                                  BlurRadius="40" ShadowDepth="0"/>
+            </Border.Effect>
+
+            <StackPanel>
+
+                <!-- Icon -->
+                <Border Width="56" Height="56" CornerRadius="14"
+                        HorizontalAlignment="Center"
+                        Margin="0,0,0,20">
+                    <Border.Background>
+                        <LinearGradientBrush StartPoint="0,0" EndPoint="1,1">
+                            <GradientStop Color="#1D4ED8" Offset="0"/>
+                            <GradientStop Color="#2563EB" Offset="1"/>
+                        </LinearGradientBrush>
+                    </Border.Background>
+                    <TextBlock Text="&#xE8A5;"
+                               FontFamily="Segoe MDL2 Assets"
+                               FontSize="26"
+                               Foreground="White"
+                               HorizontalAlignment="Center"
+                               VerticalAlignment="Center"/>
+                </Border>
+
+                <!-- Title -->
+                <TextBlock Text="Kirish"
+                           FontFamily="Segoe UI Semibold" FontSize="22"
+                           Foreground="#F9FAFB"
+                           HorizontalAlignment="Center"
+                           Margin="0,0,0,6"/>
+
+                <TextBlock Text="Undruv bo'limi boshqaruv tizimi"
+                           FontFamily="Segoe UI" FontSize="12"
+                           Foreground="#4B5563"
+                           HorizontalAlignment="Center"
+                           Margin="0,0,0,32"/>
+
+                <!-- ── Telefon raqam ── -->
+                <TextBlock Text="TELEFON RAQAM" Style="{StaticResource FieldLabel}"/>
+
+                <!-- Phone field: +998 badge + input combined in one Border -->
+                <Border x:Name="PhoneBorder"
+                        Background="#131726"
+                        BorderBrush="#252B3B"
+                        BorderThickness="1.5"
+                        CornerRadius="10"
+                        Height="46"
+                        Margin="0,0,0,20">
+                    <Grid>
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="Auto"/>
+                            <ColumnDefinition Width="Auto"/>
+                            <ColumnDefinition Width="*"/>
+                        </Grid.ColumnDefinitions>
+
+                        <!-- +998 prefix chip -->
+                        <Border Grid.Column="0"
+                                Background="#1C2236"
+                                CornerRadius="8,0,0,8"
+                                Padding="12,0"
+                                Margin="0">
+                            <TextBlock Text="+998"
+                                       Foreground="#60A5FA"
+                                       FontFamily="Segoe UI Semibold"
+                                       FontSize="14"
+                                       VerticalAlignment="Center"/>
+                        </Border>
+
+                        <!-- Divider -->
+                        <Rectangle Grid.Column="1"
+                                   Width="1" Fill="#252B3B"
+                                   VerticalAlignment="Stretch"
+                                   Margin="0,8"/>
+
+                        <!-- Digits input -->
+                        <TextBox x:Name="TxtPhone"
+                                 Grid.Column="2"
+                                 Style="{StaticResource LoginInput}"
+                                 BorderThickness="0"
+                                 Background="Transparent"
+                                 Padding="12,0"
+                                 MaxLength="15"
+                                 TextChanged="TxtPhone_TextChanged"
+                                 PreviewKeyDown="TxtPhone_PreviewKeyDown"
+                                 VerticalAlignment="Center"/>
+                    </Grid>
+                </Border>
+
+                <!-- ── Parol ── -->
+                <TextBlock Text="PAROL" Style="{StaticResource FieldLabel}"/>
+
+                <Grid Margin="0,0,0,28">
+                    <PasswordBox x:Name="TxtPassword"
+                                 Style="{StaticResource LoginPassword}"
+                                 KeyDown="TxtPassword_KeyDown"/>
+                    <!-- Show/hide toggle -->
+                    <TextBox x:Name="TxtPasswordVisible"
+                             Style="{StaticResource LoginInput}"
+                             Background="#131726"
+                             Visibility="Collapsed"
+                             KeyDown="TxtPasswordVisible_KeyDown"/>
+                    <Button x:Name="BtnTogglePassword"
+                            Click="BtnTogglePassword_Click"
+                            HorizontalAlignment="Right"
+                            VerticalAlignment="Center"
+                            Width="38" Height="38"
+                            Margin="0,0,6,0"
+                            Background="Transparent"
+                            BorderThickness="0"
+                            Cursor="Hand"
+                            Focusable="False">
+                        <Button.Template>
+                            <ControlTemplate TargetType="Button">
+                                <Border Background="Transparent"
+                                        CornerRadius="6"
+                                        x:Name="Bg">
+                                    <TextBlock x:Name="EyeIcon"
+                                               Text="&#xE7B3;"
+                                               FontFamily="Segoe MDL2 Assets"
+                                               FontSize="16"
+                                               Foreground="#4B5563"
+                                               HorizontalAlignment="Center"
+                                               VerticalAlignment="Center"/>
+                                </Border>
+                                <ControlTemplate.Triggers>
+                                    <Trigger Property="IsMouseOver" Value="True">
+                                        <Setter TargetName="EyeIcon" Property="Foreground" Value="#9CA3AF"/>
+                                    </Trigger>
+                                </ControlTemplate.Triggers>
+                            </ControlTemplate>
+                        </Button.Template>
+                    </Button>
+                </Grid>
+
+                <!-- Xatolik xabari -->
+                <Border x:Name="ErrorBorder"
+                        Background="#1F0A0A"
+                        BorderBrush="#7F1D1D"
+                        BorderThickness="1"
+                        CornerRadius="8"
+                        Padding="12,9"
+                        Margin="0,0,0,16"
+                        Visibility="Collapsed">
+                    <StackPanel Orientation="Horizontal">
+                        <TextBlock Text="&#xE783;"
+                                   FontFamily="Segoe MDL2 Assets"
+                                   FontSize="13"
+                                   Foreground="#EF4444"
+                                   VerticalAlignment="Center"
+                                   Margin="0,0,8,0"/>
+                        <TextBlock x:Name="TxtError"
+                                   Foreground="#FCA5A5"
+                                   FontFamily="Segoe UI" FontSize="12"
+                                   TextWrapping="Wrap"
+                                   VerticalAlignment="Center"/>
+                    </StackPanel>
+                </Border>
+
+                <!-- Login tugmasi -->
+                <Button x:Name="BtnLogin"
+                        Click="BtnLogin_Click"
+                        IsDefault="True"
+                        Height="46"
+                        Cursor="Hand"
+                        BorderThickness="0">
+                    <Button.Template>
+                        <ControlTemplate TargetType="Button">
+                            <Border x:Name="Bd"
+                                    CornerRadius="10"
+                                    Cursor="Hand">
+                                <Border.Background>
+                                    <LinearGradientBrush StartPoint="0,0" EndPoint="1,0">
+                                        <GradientStop Color="#1D4ED8" Offset="0"/>
+                                        <GradientStop Color="#2563EB" Offset="1"/>
+                                    </LinearGradientBrush>
+                                </Border.Background>
+                                <Grid>
+                                    <TextBlock x:Name="TxtBtnLabel"
+                                               Text="Tizimga kirish"
+                                               Foreground="White"
+                                               FontFamily="Segoe UI Semibold"
+                                               FontSize="14"
+                                               HorizontalAlignment="Center"
+                                               VerticalAlignment="Center"/>
+                                    <TextBlock x:Name="TxtLoading"
+                                               Text="Tekshirilmoqda..."
+                                               Foreground="#BFD7FF"
+                                               FontFamily="Segoe UI"
+                                               FontSize="13"
+                                               HorizontalAlignment="Center"
+                                               VerticalAlignment="Center"
+                                               Visibility="Collapsed"/>
+                                </Grid>
+                            </Border>
+                            <ControlTemplate.Triggers>
+                                <Trigger Property="IsMouseOver" Value="True">
+                                    <Setter TargetName="Bd" Property="Opacity" Value="0.9"/>
+                                </Trigger>
+                                <Trigger Property="IsPressed" Value="True">
+                                    <Setter TargetName="Bd" Property="Opacity" Value="0.8"/>
+                                </Trigger>
+                                <Trigger Property="IsEnabled" Value="False">
+                                    <Setter TargetName="Bd" Property="Background" Value="#1E2535"/>
+                                    <Setter TargetName="TxtBtnLabel" Property="Foreground" Value="#4B5563"/>
+                                </Trigger>
+                            </ControlTemplate.Triggers>
+                        </ControlTemplate>
+                    </Button.Template>
+                </Button>
+
+            </StackPanel>
+        </Border>
+    </Grid>
+</Window>

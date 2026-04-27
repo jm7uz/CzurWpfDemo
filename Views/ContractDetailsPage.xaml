@@ -1,6 +1,7 @@
 <UserControl x:Class="CzurWpfDemo.Views.ContractDetailsPage"
              xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
-             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             PreviewMouseDown="Page_PreviewMouseDown">
 
     <Grid Margin="20">
         <Grid.RowDefinitions>
@@ -16,10 +17,16 @@
                     Click="BtnBack_Click"
                     DockPanel.Dock="Left"
                     VerticalAlignment="Center" Margin="0,0,16,0"/>
-            <Button Content="&#128247; Skanerlash" Style="{StaticResource PrimaryButton}"
+            <Button x:Name="BtnScan" Content="&#128247; Skanerlash" Style="{StaticResource PrimaryButton}"
                     Click="BtnScan_Click"
                     DockPanel.Dock="Right"
+                    Visibility="Collapsed"
                     VerticalAlignment="Center"/>
+            <Button x:Name="BtnDownloadAll" Content="&#11015; Barchasini yukla" Style="{StaticResource SuccessButton}"
+                    Click="BtnDownloadAll_Click"
+                    DockPanel.Dock="Right"
+                    Visibility="Collapsed"
+                    VerticalAlignment="Center" Margin="0,0,8,0"/>
             <StackPanel>
                 <TextBlock x:Name="TxtTitle" Text="Shartnomalar"
                            FontFamily="Segoe UI Light" FontSize="26"
@@ -34,6 +41,103 @@
         <Border Grid.Row="1" Background="#1C1F2E" CornerRadius="10"
                 Padding="16" Margin="0,0,0,12">
             <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
+                <!-- Filial dropdown -->
+                <StackPanel Margin="0,0,16,0">
+                    <TextBlock Text="Filial" Style="{StaticResource LabelText}" Margin="0,0,0,4"/>
+                    <Grid Width="200">
+                        <Border x:Name="BranchDropdownTrigger"
+                                Background="#1C1F2E" BorderBrush="#374151" BorderThickness="1"
+                                CornerRadius="6" Padding="10,8" Cursor="Hand" Height="36"
+                                MouseLeftButtonDown="BranchDropdown_Click">
+                            <DockPanel>
+                                <TextBlock Text="&#9660;" DockPanel.Dock="Right"
+                                           Foreground="#6B7280" FontSize="9"
+                                           VerticalAlignment="Center" Margin="8,0,0,0"/>
+                                <TextBlock x:Name="TxtSelectedBranch" Text="Barchasi"
+                                           Foreground="#9CA3AF" FontFamily="Segoe UI" FontSize="13"
+                                           VerticalAlignment="Center" TextTrimming="CharacterEllipsis"/>
+                            </DockPanel>
+                        </Border>
+                        <Popup x:Name="BranchPopup"
+                               PlacementTarget="{Binding ElementName=BranchDropdownTrigger}"
+                               Placement="Bottom" StaysOpen="True" AllowsTransparency="True"
+                               Opened="BranchPopup_Opened">
+                            <Border Width="200" Background="#1A1D2E" BorderBrush="#4B5563"
+                                    BorderThickness="1" CornerRadius="0,0,8,8" Padding="6">
+                                <Border.Effect>
+                                    <DropShadowEffect Color="Black" Opacity="0.5" BlurRadius="20" ShadowDepth="8"/>
+                                </Border.Effect>
+                                <StackPanel>
+                                    <Border Background="#262A3E" BorderBrush="#374151"
+                                            BorderThickness="1" CornerRadius="6" Margin="0,0,0,6">
+                                        <DockPanel Margin="10,7">
+                                            <TextBlock Text="&#128269;" DockPanel.Dock="Left"
+                                                       Foreground="#6B7280" FontSize="11"
+                                                       VerticalAlignment="Center" Margin="0,0,7,0"/>
+                                            <TextBox x:Name="TxtBranchSearch" Background="Transparent"
+                                                     BorderThickness="0" Foreground="#F3F4F6"
+                                                     CaretBrush="#F3F4F6" FontFamily="Segoe UI" FontSize="13"
+                                                     VerticalAlignment="Center"
+                                                     TextChanged="TxtBranchSearch_TextChanged"/>
+                                        </DockPanel>
+                                    </Border>
+                                    <ScrollViewer MaxHeight="280" VerticalScrollBarVisibility="Auto">
+                                        <StackPanel x:Name="BranchListPanel"/>
+                                    </ScrollViewer>
+                                </StackPanel>
+                            </Border>
+                        </Popup>
+                    </Grid>
+                </StackPanel>
+
+                <!-- User dropdown -->
+                <StackPanel x:Name="UserFilterPanel" Visibility="Collapsed" Margin="0,0,16,0">
+                    <TextBlock Text="Xodim" Style="{StaticResource LabelText}" Margin="0,0,0,4"/>
+                    <Grid Width="200">
+                        <Border x:Name="UserDropdownTrigger"
+                                Background="#1C1F2E" BorderBrush="#374151" BorderThickness="1"
+                                CornerRadius="6" Padding="10,8" Cursor="Hand" Height="36"
+                                MouseLeftButtonDown="UserDropdown_Click">
+                            <DockPanel>
+                                <TextBlock Text="&#9660;" DockPanel.Dock="Right"
+                                           Foreground="#6B7280" FontSize="9"
+                                           VerticalAlignment="Center" Margin="8,0,0,0"/>
+                                <TextBlock x:Name="TxtSelectedUser" Text="Barchasi"
+                                           Foreground="#9CA3AF" FontFamily="Segoe UI" FontSize="13"
+                                           VerticalAlignment="Center" TextTrimming="CharacterEllipsis"/>
+                            </DockPanel>
+                        </Border>
+                        <Popup x:Name="UserPopup"
+                               PlacementTarget="{Binding ElementName=UserDropdownTrigger}"
+                               Placement="Bottom" StaysOpen="True" AllowsTransparency="True"
+                               Opened="UserPopup_Opened">
+                            <Border Width="200" Background="#1A1D2E" BorderBrush="#4B5563"
+                                    BorderThickness="1" CornerRadius="0,0,8,8" Padding="6">
+                                <Border.Effect>
+                                    <DropShadowEffect Color="Black" Opacity="0.5" BlurRadius="20" ShadowDepth="8"/>
+                                </Border.Effect>
+                                <StackPanel>
+                                    <Border Background="#262A3E" BorderBrush="#374151"
+                                            BorderThickness="1" CornerRadius="6" Margin="0,0,0,6">
+                                        <DockPanel Margin="10,7">
+                                            <TextBlock Text="&#128269;" DockPanel.Dock="Left"
+                                                       Foreground="#6B7280" FontSize="11"
+                                                       VerticalAlignment="Center" Margin="0,0,7,0"/>
+                                            <TextBox x:Name="TxtUserSearch" Background="Transparent"
+                                                     BorderThickness="0" Foreground="#F3F4F6"
+                                                     CaretBrush="#F3F4F6" FontFamily="Segoe UI" FontSize="13"
+                                                     VerticalAlignment="Center"
+                                                     TextChanged="TxtUserSearch_TextChanged"/>
+                                        </DockPanel>
+                                    </Border>
+                                    <ScrollViewer MaxHeight="280" VerticalScrollBarVisibility="Auto">
+                                        <StackPanel x:Name="UserListPanel"/>
+                                    </ScrollViewer>
+                                </StackPanel>
+                            </Border>
+                        </Popup>
+                    </Grid>
+                </StackPanel>
                 <StackPanel Margin="0,0,16,0">
                     <TextBlock Text="Qidirish" Style="{StaticResource LabelText}" Margin="0,0,0,4"/>
                     <TextBox x:Name="TxtSearch" Style="{StaticResource FilterInput}" Width="200" Height="30"/>
@@ -131,6 +235,33 @@
                     <DataGridTextColumn Header="Sana" Binding="{Binding DateFormatted}" Width="120"/>
                     <DataGridTextColumn Header="Holat" Binding="{Binding Status}" Width="80"/>
                     <DataGridTextColumn Header="Mas'ul" Binding="{Binding ResponsibleWorker}" Width="130"/>
+                    <DataGridTemplateColumn x:Name="ColDownload" Header="Yukla" Width="80">
+                        <DataGridTemplateColumn.CellTemplate>
+                            <DataTemplate>
+                                <Button Content="&#11015;" Tag="{Binding}"
+                                        Click="BtnDownloadRow_Click"
+                                        Cursor="Hand"
+                                        Background="#10B981" Foreground="White"
+                                        BorderThickness="0" FontSize="14"
+                                        Padding="6,2" Margin="4,2"
+                                        HorizontalAlignment="Center">
+                                    <Button.Template>
+                                        <ControlTemplate TargetType="Button">
+                                            <Border x:Name="Bd" Background="{TemplateBinding Background}"
+                                                    CornerRadius="5" Padding="{TemplateBinding Padding}">
+                                                <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                                            </Border>
+                                            <ControlTemplate.Triggers>
+                                                <Trigger Property="IsMouseOver" Value="True">
+                                                    <Setter TargetName="Bd" Property="Background" Value="#059669"/>
+                                                </Trigger>
+                                            </ControlTemplate.Triggers>
+                                        </ControlTemplate>
+                                    </Button.Template>
+                                </Button>
+                            </DataTemplate>
+                        </DataGridTemplateColumn.CellTemplate>
+                    </DataGridTemplateColumn>
                 </DataGrid.Columns>
             </DataGrid>
         </Border>

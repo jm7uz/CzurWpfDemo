@@ -7,7 +7,6 @@ public class ContractDetailsRequest
 {
     public string? Search { get; set; }
     public List<string>? Date { get; set; }
-    public string? BranchGuid { get; set; }
 }
 
 public class ContractDetailsResponse

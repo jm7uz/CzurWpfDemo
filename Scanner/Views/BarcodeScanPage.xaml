@@ -1,0 +1,129 @@
+<UserControl x:Class="CzurWpfDemo.Views.BarcodeScanPage"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             Background="#0F1117">
+
+    <Grid Margin="20">
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="*"/>
+            <RowDefinition Height="Auto"/>
+        </Grid.RowDefinitions>
+
+        <!-- ─── Header ──────────────────────────────────────────── -->
+        <Grid Grid.Row="0" Margin="0,0,0,16">
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="Auto"/>
+                <ColumnDefinition Width="*"/>
+                <ColumnDefinition Width="Auto"/>
+            </Grid.ColumnDefinitions>
+
+            <Button Grid.Column="0" Content="&#8592; Orqaga"
+                    Style="{StaticResource SecondaryButton}"
+                    Click="BtnBack_Click"
+                    VerticalAlignment="Center" Margin="0,0,16,0"/>
+
+            <StackPanel Grid.Column="1">
+                <TextBlock Text="Barcode Skanerlash"
+                           FontFamily="Segoe UI Light" FontSize="28"
+                           Foreground="#F3F4F6"/>
+                <TextBlock Text="Shartnomani sarlavha tomoni yuqoriga, kamera oldiga tuting"
+                           FontFamily="Segoe UI" FontSize="13"
+                           Foreground="#9CA3AF" Margin="0,4,0,0"/>
+            </StackPanel>
+
+            <!-- Aniqlangan barcode badge -->
+            <Border Grid.Column="2" x:Name="BarcodeFoundBadge"
+                    Background="#065F46" CornerRadius="8"
+                    Padding="14,8" VerticalAlignment="Center"
+                    Visibility="Collapsed">
+                <StackPanel>
+                    <TextBlock Text="Aniqlandi ✓" Foreground="#6EE7B7"
+                               FontFamily="Segoe UI" FontSize="11" Margin="0,0,0,2"/>
+                    <TextBlock x:Name="TxtBarcodeValue" Foreground="#F3F4F6"
+                               FontFamily="Segoe UI Semibold" FontSize="14"/>
+                </StackPanel>
+            </Border>
+        </Grid>
+
+        <!-- ─── Kamera + guide overlay ──────────────────────────── -->
+        <Border Grid.Row="1" Background="#0A0D14" CornerRadius="12" ClipToBounds="True">
+            <Grid>
+
+                <!-- Placeholder -->
+                <StackPanel x:Name="PlaceholderPanel"
+                            HorizontalAlignment="Center" VerticalAlignment="Center">
+                    <TextBlock Text="&#9608;" FontSize="48" HorizontalAlignment="Center"
+                               Foreground="#374151"/>
+                    <TextBlock Text="Kamera ulanmoqda..."
+                               Foreground="#4B5563" FontFamily="Segoe UI" FontSize="14"
+                               HorizontalAlignment="Center" Margin="0,8,0,0"/>
+                </StackPanel>
+
+                <!-- Kamera Viewbox: CameraGrid o'lchami kod orqali o'rnatiladi -->
+                <Viewbox Stretch="Uniform">
+                    <Grid x:Name="CameraGrid">
+                        <Image x:Name="CameraImage"
+                               RenderOptions.BitmapScalingMode="HighQuality"
+                               Visibility="Collapsed"/>
+
+                        <!-- ROI va corner polygon -->
+                        <Canvas x:Name="OverlayCanvas"
+                                Visibility="Collapsed"
+                                HorizontalAlignment="Left" VerticalAlignment="Top">
+
+                            <!-- Hujjat chegarasi (corner detection) -->
+                            <Polygon x:Name="LiveCropPolygon"
+                                     Stroke="#3B82F6" StrokeThickness="3"
+                                     Fill="#113B82F6" IsHitTestVisible="False"/>
+
+                            <!-- Barcode ROI guide: kod orqali joylashtiriladi -->
+                            <Rectangle x:Name="BarcodeRoiRect"
+                                       Stroke="#FFE000" StrokeThickness="3"
+                                       Fill="#1AFFE000"
+                                       StrokeDashArray="10,5"
+                                       IsHitTestVisible="False"/>
+                            <TextBlock x:Name="BarcodeRoiLabel"
+                                       Text="▶ Barcode joyi"
+                                       Foreground="#FFE000"
+                                       FontFamily="Segoe UI Semibold"
+                                       IsHitTestVisible="False"/>
+                        </Canvas>
+                    </Grid>
+                </Viewbox>
+
+                <!-- Barcode topilganda ko'k overlay -->
+                <Border x:Name="DetectedOverlay" Visibility="Collapsed"
+                        Background="#CC065F46" CornerRadius="12"
+                        Padding="28,16" HorizontalAlignment="Center"
+                        VerticalAlignment="Center">
+                    <StackPanel HorizontalAlignment="Center">
+                        <TextBlock Text="✓ Barcode aniqlandi" Foreground="#6EE7B7"
+                                   FontFamily="Segoe UI Semibold" FontSize="20"
+                                   HorizontalAlignment="Center" Margin="0,0,0,8"/>
+                        <TextBlock x:Name="TxtOverlayBarcode" Foreground="White"
+                                   FontFamily="Segoe UI" FontSize="24" FontWeight="Bold"
+                                   HorizontalAlignment="Center" Margin="0,0,0,10"/>
+                        <TextBlock Text="Shartnoma yuklanmoqda..." Foreground="#6EE7B7"
+                                   FontFamily="Segoe UI" FontSize="14"
+                                   HorizontalAlignment="Center"/>
+                    </StackPanel>
+                </Border>
+            </Grid>
+        </Border>
+
+        <!-- ─── Status satri ─────────────────────────────────────── -->
+        <Border Grid.Row="2" Background="#1C1F2E" CornerRadius="8"
+                Padding="16,10" Margin="0,12,0,0">
+            <DockPanel>
+                <TextBlock x:Name="TxtFps" DockPanel.Dock="Right"
+                           Foreground="#374151" FontFamily="Consolas"
+                           FontSize="11" VerticalAlignment="Center"/>
+                <TextBlock x:Name="TxtStatus"
+                           Text="Kamera ulanmoqda..."
+                           Foreground="#6B7280" FontFamily="Consolas"
+                           FontSize="12" VerticalAlignment="Center" TextWrapping="Wrap"/>
+            </DockPanel>
+        </Border>
+    </Grid>
+</UserControl>

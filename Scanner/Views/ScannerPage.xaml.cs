@@ -1377,18 +1377,10 @@ public partial class ScannerPage : UserControl
         using var document = new PdfDocument();
         foreach (var mat in images)
         {
-            // Landscape bo'lsa portrait ga aylantirish
-            Mat toSave = mat;
-            if (mat.Cols > mat.Rows)
-            {
-                toSave = new Mat();
-                Cv2.Rotate(mat, toSave, RotateFlags.Rotate90Counterclockwise);
-            }
-
             var tempFile = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".png");
             try
             {
-                Cv2.ImWrite(tempFile, toSave);
+                Cv2.ImWrite(tempFile, mat);
                 using var xImage = XImage.FromFile(tempFile);
                 var page = document.AddPage();
                 page.Width  = XUnit.FromPoint(xImage.PointWidth  * (72.0 / xImage.HorizontalResolution));
@@ -1398,7 +1390,6 @@ public partial class ScannerPage : UserControl
             }
             finally
             {
-                if (toSave != mat) toSave.Dispose();
                 if (File.Exists(tempFile)) File.Delete(tempFile);
             }
         }

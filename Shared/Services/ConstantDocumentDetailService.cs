@@ -29,7 +29,7 @@ public class ConstantDocumentDetailService
             File = filePath,
             PhotoCount = photoCount
         };
-        return await ApiService.PutAsync<ConstantDocumentDetailUpdateResponse>(
+        return await ApiService.PostAsync<ConstantDocumentDetailUpdateResponse>(
             $"contract-document-detail/update/{detailId}", request);
     }
 }

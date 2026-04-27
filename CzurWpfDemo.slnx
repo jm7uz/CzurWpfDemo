@@ -1,3 +1,6 @@
-<Solution>
+﻿<Solution>
   <Project Path="CzurWpfDemo.csproj" />
+  <Project Path="Shared\CzurWpfDemo.Shared.csproj" />
+  <Project Path="Scanner\CzurWpfDemo.Scanner.csproj" />
+  <Project Path="Viewer\CzurWpfDemo.Viewer.csproj" />
 </Solution>

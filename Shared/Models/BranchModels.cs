@@ -24,7 +24,6 @@ public class BranchResult
 public class BranchItem
 {
     public int Id { get; set; }
-    public string Guid { get; set; } = string.Empty;
     public string Name { get; set; } = string.Empty;
     public int? StateId { get; set; }
     public string StateName { get; set; } = string.Empty;

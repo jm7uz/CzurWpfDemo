@@ -125,16 +125,25 @@ public partial class BarcodeScanPage : UserControl
                     Dispatcher.InvokeAsync(() => TxtFps.Text = $"{fps:F1} fps");
                 }
 
-                int dw = mat.Cols;
-                int dh = mat.Rows;
+                // 1. Corner detection
+                Point2f[] corners;
+                try { corners = FindDocumentCorners(mat); }
+                catch { corners = DefaultCorners(mat); }
 
-                // To'liq raw kadrni ko'rsat (warp yo'q — barcode yuqorida ham ko'rinadi)
-                var rawBmp = MatToBitmapSource(mat);
-                rawBmp.Freeze();
+                // 2. Document crop (ENG MUHIM)
+                var doc = WarpDocument(mat, corners);
 
+                int dw = doc.Cols;
+                int dh = doc.Rows;
+
+                // 3. Bitmap tayyorlash
+                var docBmp = MatToBitmapSource(doc);
+                docBmp.Freeze();
+
+                // 4. UI update
                 Dispatcher.InvokeAsync(() =>
                 {
-                    CameraImage.Source = rawBmp;
+                    CameraImage.Source = docBmp;
 
                     CameraGrid.Width = dw;
                     CameraGrid.Height = dh;
@@ -142,6 +151,7 @@ public partial class BarcodeScanPage : UserControl
                     OverlayCanvas.Width = dw;
                     OverlayCanvas.Height = dh;
 
+                    // Polygon endi kerak emas (optional)
                     LiveCropPolygon.Visibility = Visibility.Collapsed;
 
                     if (!_guideInitialized)
@@ -151,11 +161,11 @@ public partial class BarcodeScanPage : UserControl
                     }
                 });
 
-                // Barcode detection — to'liq raw kadrdan
+                // 5. Barcode detection (doc ichidan!)
                 _frameCounter++;
                 if (_frameCounter % 3 == 0 && !_isProcessingBarcode && !_barcodeConfirmed)
                 {
-                    var clone = mat.Clone();
+                    var clone = doc.Clone(); // MUHIM: thread safe
                     _ = TryDetectBarcodeAsync(clone);
                 }
             }

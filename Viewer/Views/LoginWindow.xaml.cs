@@ -175,7 +175,7 @@ public partial class LoginWindow : Window
             var phone = GetRawPhone(); // "998XXXXXXXXX"
             var response = await AuthService.LoginAsync(phone, password);
 
-            if (response is { Status: true, Resoult: not null }) 
+            if (response is { Status: true, Resoult: not null })
             {
                 var user = await AuthService.GetMeAsync();
 
@@ -183,12 +183,10 @@ public partial class LoginWindow : Window
 
                 if (user?.Role == "superadmin")
                     shell.ContentArea.Content = new ReportPage();
-                else if (user?.Role == "admin")
-                    shell.ContentArea.Content = new ContractDetailsPage();
                 else if (user?.Role == "user")
-                    shell.ContentArea.Content = new ContractDetailsPage();
+                    shell.ContentArea.Content = new ContractDetailsPage(user.Id, user.Name);
                 else
-                    shell.ContentArea.Content = new ScannerPage();
+                    shell.ContentArea.Content = new ContractDetailsPage(user?.Id ?? 0, user?.Name ?? "");
 
                 shell.Show();
                 Close();
