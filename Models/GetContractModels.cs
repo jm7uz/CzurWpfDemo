@@ -4,13 +4,22 @@ namespace CzurWpfDemo.Models;
 
 public class GetContractRequest
 {
+    public string Ticket { get; set; } = string.Empty;
     public string DocumentNumber { get; set; } = string.Empty;
+    public int Status { get; set; } = 1;
 }
 
 public class GetContractResponse
 {
     public bool Status { get; set; }
+    public string? Message { get; set; }
+    public ApiError? Error { get; set; }
     public GetContractDetail? Resoult { get; set; }
+}
+
+public class ApiError
+{
+    public string? Message { get; set; }
 }
 
 public class GetContractDetail

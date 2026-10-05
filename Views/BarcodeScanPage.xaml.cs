@@ -23,6 +23,7 @@ public partial class BarcodeScanPage : UserControl
     private CancellationTokenSource? _cts;
     private Task? _captureTask;
     private bool _isRunning;
+    private bool _autoFocusApplied;
 
     // ─── Barcode aniqlash ───────────────────────────────────────────
     private bool _isProcessingBarcode;
@@ -113,6 +114,13 @@ public partial class BarcodeScanPage : UserControl
                 {
                     Thread.Sleep(10);
                     continue;
+                }
+
+                if (!_autoFocusApplied)
+                {
+                    _autoFocusApplied = true;
+                    _capture.Set(VideoCaptureProperties.AutoFocus, 0);
+                    _capture.Set(VideoCaptureProperties.AutoFocus, 1);
                 }
 
                 // FPS hisoblash
@@ -345,29 +353,34 @@ public partial class BarcodeScanPage : UserControl
             var validation = await GetContractService.ValidateAsync(barcode);
             if (validation?.Status != true)
             {
-                SetStatus($"❌ Barcode topilmadi: {barcode}");
-                ResetDetection(); return;
+                var msg    = validation?.Error?.Message ?? validation?.Message;
+                var reason = string.IsNullOrWhiteSpace(msg) ? "" : $" — {msg}";
+                ResetDetection($"❌ Barcode topilmadi: {barcode}{reason}"); return;
             }
 
-            var all      = await GetContractService.SearchAllAsync(barcode);
-            var contract = all?.Resoult?.Data?.FirstOrDefault();
+            // Ishlagan versiyadagidek get/all barcode bilan; topilmasa — get/contract qaytargan shartnoma raqami bilan
+            var docNumber = validation.Resoult?.DocumentNumber;
+            var contract  = (await GetContractService.SearchAllAsync(barcode))?.Resoult?.Data?.FirstOrDefault();
+            if (contract == null && !string.IsNullOrWhiteSpace(docNumber) && docNumber != barcode)
+                contract = (await GetContractService.SearchAllAsync(docNumber))?.Resoult?.Data?.FirstOrDefault();
+            // Laravel bazasida bo'lmasa saqlab bo'lmaydi (contract_id = 0 bo'lib qoladi) — shuning uchun to'xtatamiz
             if (contract == null)
             {
-                SetStatus("❌ Shartnoma ma'lumotlari topilmadi.");
-                ResetDetection(); return;
+                ResetDetection($"❌ Shartnoma ma'lumotlari topilmadi: {docNumber ?? barcode}"); return;
             }
 
             await StopCameraAsync();
-            AppShell.Current?.NavigateReplace(new ScannerPage(contract));
+            // 1C dan kelgan filial nomi — ScannerPage da avtomatik tanlanadi
+            AppShell.Current?.NavigateReplace(new ScannerPage(contract, validation.Resoult?.Branch));
         }
         catch (Exception ex)
         {
-            SetStatus($"❌ Xatolik: {ex.Message}");
-            ResetDetection();
+            ResetDetection($"❌ Xatolik: {ex.Message}");
         }
     }
 
-    private void ResetDetection()
+    // statusMessage berilsa — xatolik matni o'chib ketmasligi uchun shu ko'rsatiladi
+    private void ResetDetection(string? statusMessage = null)
     {
         _barcodeConfirmed = false;
         _lastBarcode      = null;
@@ -377,7 +390,7 @@ public partial class BarcodeScanPage : UserControl
         _isRunning = true;
         _cts       = new CancellationTokenSource();
         _captureTask = Task.Run(() => CaptureLoop(_cts.Token));
-        SetStatus("Hujjatni sarlavha tomoni yuqoriga tutib, barcode qutisi ichiga soling");
+        SetStatus(statusMessage ?? "Hujjatni sarlavha tomoni yuqoriga tutib, barcode qutisi ichiga soling");
     }
 
     // ─── Guide qutisi (birinchi kadrda chiziladi) ────────────────────

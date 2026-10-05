@@ -27,6 +27,7 @@ public partial class ScannerPage : UserControl
     private List<ContractDocumentType>? _allDocumentTypes;
     private List<BranchItem>? _allBranches;
     private BranchItem? _selectedBranch;
+    private readonly string? _contractBranchName; // 1C (GetContractData) dan kelgan filial nomi
     private List<ContractDetailEntry>? _fetchedConstantDetails; // get/all dan yangilangan constant_details
     private List<ContractDetailEntry>? _fetchedDetails;         // get/all dan yangilangan details
 
@@ -35,6 +36,7 @@ public partial class ScannerPage : UserControl
     private CancellationTokenSource? _cts;
     private Task? _captureTask;
     private volatile bool _isRunning;
+    private bool _autoFocusApplied;
     private bool _isManualCropMode;
     private int _isStopping; // 0 = free, 1 = stopping (Interlocked uchun)
     private Mat? _lastMat;
@@ -70,10 +72,11 @@ public partial class ScannerPage : UserControl
         (1536, 1152),   // CZUR Skan rejimi
     };
 
-    public ScannerPage(ContractItem? contract = null)
+    public ScannerPage(ContractItem? contract = null, string? branchName = null)
     {
         InitializeComponent();
         _contract = contract;
+        _contractBranchName = branchName;
         Loaded += ScannerPage_Loaded;
         Unloaded += ScannerPage_Unloaded;
     }
@@ -91,6 +94,7 @@ public partial class ScannerPage : UserControl
             BranchFilterPanel.Visibility = Visibility.Visible;
 
             await LoadBranchesAsync();
+            AutoSelectContractBranch();
             await LoadDocumentTypesAsync();
             Log($"Shartnoma yuklandi: {_contract.DocumentNumber} - {_contract.Name}");
         }
@@ -113,6 +117,7 @@ public partial class ScannerPage : UserControl
         SetStatus("Ulanmoqda...", "#F59E0B");
         Log($"Kamera {cameraIndex} ochilmoqda ({width}×{height})...");
         BtnManualCrop.IsEnabled = false;
+        BtnAutoCapture.IsEnabled = false;
         BtnCapture.IsEnabled = false;
 
         bool success = await Task.Run(() => InitCamera(cameraIndex, width, height));
@@ -125,6 +130,7 @@ public partial class ScannerPage : UserControl
             PlaceholderPanel.Visibility = Visibility.Collapsed;
             CameraImage.Visibility = Visibility.Visible;
             BtnManualCrop.IsEnabled = true;
+            BtnAutoCapture.IsEnabled = true;
             _isManualCropMode = false;
             BtnCapture.IsEnabled = true;
             LiveCropCanvas.Visibility = Visibility.Visible;
@@ -137,12 +143,9 @@ public partial class ScannerPage : UserControl
             foreach (var mat in _scannedPages) mat.Dispose();
             _scannedPages.Clear();
             _captureCount = 0;
-            TxtCaptureCount.Text = "0";
-            BtnSave.IsEnabled = false;
-            CapturedImage.Source = null;
-
             foreach (var (_, mats) in _cardImages) foreach (var m in mats) m.Dispose();
             _cardImages.Clear();
+            RefreshCapturedList();
             _captureTask = Task.Run(() => CaptureLoop(_cts.Token));
         }
         else
@@ -245,6 +248,29 @@ public partial class ScannerPage : UserControl
         }
         catch (Exception ex) { Log($"❌ Filiallar xatosi: {ex.Message}"); }
     }
+
+    // ─── 1C filialini avtomatik tanlash ───────────────────────────
+    private void AutoSelectContractBranch()
+    {
+        var name = NormalizeBranchName(_contractBranchName);
+        if (name.Length == 0 || _allBranches == null) return;
+
+        // Avval aniq moslik, keyin qisman (masalan "Chilonzor" ↔ "Chilonzor filiali")
+        var match = _allBranches.FirstOrDefault(b => NormalizeBranchName(b.Name) == name)
+                 ?? _allBranches.FirstOrDefault(b =>
+                    {
+                        var n = NormalizeBranchName(b.Name);
+                        return n.Length > 0 && (n.Contains(name) || name.Contains(n));
+                    });
+
+        if (match != null)
+            SelectBranch(match);
+        else
+            Log($"⚠ 1C filiali ro'yxatda topilmadi: {_contractBranchName}");
+    }
+
+    private static string NormalizeBranchName(string? s) =>
+        string.Join(' ', (s ?? "").ToLowerInvariant().Split(' ', StringSplitOptions.RemoveEmptyEntries));
 
     // ─── Dropdown ochish/yopish ───────────────────────────────────
     private void BranchDropdown_Click(object sender, System.Windows.Input.MouseButtonEventArgs e)
@@ -462,8 +488,10 @@ public partial class ScannerPage : UserControl
                 _initiallyUploadedCardIds.Add(cardId);
                 SetCardState(cardId, "done");
 
-                var totalPhotos = g.Sum(d => int.TryParse(d.PhotoCount, out var pc) ? pc : 0);
-                SetCardCountBadge(cardId, totalPhotos);
+                // Kartaning amaldagi PDF'i — eng oxirgi yozuv (update ham, ko'z tugmasi ham shuni ishlatadi).
+                // Barcha yozuvlarni qo'shib yuborsak, eski PDF'larning rasmlari ham sanalib ketadi (30 + 1 = 31).
+                var latest = g.OrderByDescending(d => d.Id).First();
+                SetCardCountBadge(cardId, int.TryParse(latest.PhotoCount, out var pc) ? pc : 0);
             }
         }
     }
@@ -606,9 +634,7 @@ public partial class ScannerPage : UserControl
         // Tanlangan kartada qalin chegara
         card.BorderThickness = new Thickness(2.5);
 
-        var count = _cardImages.TryGetValue(docType.Id, out var imgs) ? imgs.Count : 0;
-        BtnSave.IsEnabled    = count > 0;
-        TxtCaptureCount.Text = count.ToString();
+        RefreshCapturedList();
         Log($"📋 Tanlandi: {docType.PunktName}");
     }
 
@@ -663,6 +689,7 @@ public partial class ScannerPage : UserControl
         BtnStart.IsEnabled = true;
         BtnStop.IsEnabled = false;
         BtnManualCrop.IsEnabled = false;
+        BtnAutoCapture.IsEnabled = false;
         _isManualCropMode = false;
         BtnManualCrop.Content = "Qo'lda tahrirlash";
         BtnCapture.IsEnabled = false;
@@ -671,9 +698,7 @@ public partial class ScannerPage : UserControl
         foreach (var mat in _scannedPages) mat.Dispose();
         _scannedPages.Clear();
         _captureCount = 0;
-        TxtCaptureCount.Text = "0";
-        CapturedImage.Source = null;
-        BtnSave.IsEnabled = false;
+        RefreshCapturedList();
         Log("⏹ Kamera to'xtatildi.");
     }
 
@@ -689,6 +714,7 @@ public partial class ScannerPage : UserControl
             _capture.Set(VideoCaptureProperties.Fps, width >= 4000 ? 2 : 20);
             _capture.Set(VideoCaptureProperties.FourCC, VideoWriter.FourCC('M', 'J', 'P', 'G'));
             _capture.BufferSize = 1;
+            _autoFocusApplied = false;
             return _capture.IsOpened();
         }
         catch { return false; }
@@ -708,6 +734,13 @@ public partial class ScannerPage : UserControl
                 {
                     Thread.Sleep(10);
                     continue;
+                }
+
+                if (!_autoFocusApplied)
+                {
+                    _autoFocusApplied = true;
+                    var focusMsg = EnableAutoFocus(cap);
+                    Dispatcher.InvokeAsync(() => Log(focusMsg));
                 }
 
                 lock (_matLock)
@@ -735,8 +768,9 @@ public partial class ScannerPage : UserControl
                 System.Windows.Point[]? liveCorners = null;
                 if (!_isManualCropMode)
                 {
-                    var corners = FindDocumentCorners(mat);
+                    var corners = FindDocumentCorners(mat, out var docFound);
                     liveCorners = corners.Select(c => new System.Windows.Point(c.X, c.Y)).ToArray();
+                    if (_autoCaptureOn) ProcessAutoCapture(mat, docFound);
                 }
 
                 Dispatcher.InvokeAsync(() =>
@@ -764,6 +798,92 @@ public partial class ScannerPage : UserControl
                 Thread.Sleep(100);
             }
         }
+    }
+
+    // ─── Avtomatik rasmga olish ───────────────────────────────────
+    // Varaq qo'yilib (harakat), hujjat ~1.5 s qimirlamay tursa — avtomatik rasmga olinadi.
+    // Keyingi rasm faqat yana harakat bo'lgandan keyin (varaq almashtirilganda) olinadi.
+    private const double AutoMotionRatio = 0.01;   // shu ulushdan ko'p piksel o'zgarsa — harakat bor
+    private const double AutoSamePageRatio = 0.05; // oxirgi olingan sahifadan kam farq qilsa — o'sha varaq
+    private static readonly TimeSpan AutoStableTime = TimeSpan.FromSeconds(1.5);
+
+    private volatile bool _autoCaptureOn;
+    private volatile bool _autoResetRequested;
+    private bool _autoArmed;
+    private DateTime? _autoStableSince;
+    private Mat? _autoPrevSmall;
+    private Mat? _autoLastCapturedSmall;
+
+    // CaptureLoop (fon oqimi) dan har kadrda chaqiriladi
+    private void ProcessAutoCapture(Mat frame, bool docFound)
+    {
+        if (_autoResetRequested)
+        {
+            _autoResetRequested = false;
+            _autoArmed = true;
+            _autoStableSince = null;
+            _autoLastCapturedSmall?.Dispose();
+            _autoLastCapturedSmall = null;
+        }
+
+        using var resized = new Mat();
+        Cv2.Resize(frame, resized, new OpenCvSharp.Size(160, 120), 0, 0, InterpolationFlags.Area);
+        var small = new Mat();
+        Cv2.CvtColor(resized, small, ColorConversionCodes.BGR2GRAY);
+        Cv2.GaussianBlur(small, small, new OpenCvSharp.Size(5, 5), 0);
+
+        bool moving = _autoPrevSmall == null || ChangedRatio(small, _autoPrevSmall) > AutoMotionRatio;
+        _autoPrevSmall?.Dispose();
+        _autoPrevSmall = small;
+
+        if (moving) { _autoArmed = true; _autoStableSince = null; return; }
+        if (!_autoArmed || !docFound) { _autoStableSince = null; return; }
+
+        _autoStableSince ??= DateTime.Now;
+        if (DateTime.Now - _autoStableSince.Value < AutoStableTime) return;
+
+        _autoArmed = false;
+        _autoStableSince = null;
+
+        if (_contract != null && _selectedDocumentType == null)
+        {
+            Dispatcher.InvokeAsync(() => Log("⚠ Avto: avval chap tomondan hujjat turini tanlang"));
+            return;
+        }
+
+        // Qo'l tegib ketgan bo'lsa ham o'sha varaqni qayta olmaymiz
+        if (_autoLastCapturedSmall != null && ChangedRatio(small, _autoLastCapturedSmall) < AutoSamePageRatio)
+            return;
+        _autoLastCapturedSmall?.Dispose();
+        _autoLastCapturedSmall = small.Clone();
+
+        Dispatcher.InvokeAsync(() =>
+        {
+            if (!_autoCaptureOn || _isManualCropMode || !BtnCapture.IsEnabled) return;
+            Log("📸 Avto: rasmga olinmoqda...");
+            BtnCapture_Click(this, new RoutedEventArgs());
+        });
+    }
+
+    private static double ChangedRatio(Mat a, Mat b)
+    {
+        using var diff = new Mat();
+        Cv2.Absdiff(a, b, diff);
+        Cv2.Threshold(diff, diff, 25, 255, ThresholdTypes.Binary);
+        return Cv2.CountNonZero(diff) / (double)(diff.Rows * diff.Cols);
+    }
+
+    private void BtnAutoCapture_Click(object sender, RoutedEventArgs e)
+    {
+        _autoCaptureOn = !_autoCaptureOn;
+        _autoResetRequested = true;
+        BtnAutoCapture.Content = _autoCaptureOn ? "⏱  Avto: Yoqiq" : "⏱  Avto: O'chiq";
+        BtnAutoCapture.Background = new SolidColorBrush(_autoCaptureOn
+            ? Color.FromRgb(5, 150, 105)
+            : Color.FromRgb(55, 65, 81));
+        Log(_autoCaptureOn
+            ? "⏱ Avto rejim yoqildi: varaqni qo'ying va qimirlatmang"
+            : "⏱ Avto rejim o'chirildi");
     }
 
     // ─── Rasm Olish ───────────────────────────────────────────────
@@ -822,8 +942,6 @@ public partial class ScannerPage : UserControl
 
             _captureCount++;
             var cardCount = _cardImages[cardId].Count;
-            TxtCaptureCount.Text = cardCount.ToString();
-            BtnSave.IsEnabled = true;
             Log($"📸 {_selectedDocumentType.PunktName}: {cardCount}-rasm saqlandi (local).");
         }
         else
@@ -831,21 +949,132 @@ public partial class ScannerPage : UserControl
             // Standalone rejim
             _scannedPages.Add(enhanced.Clone());
             _captureCount++;
-            TxtCaptureCount.Text = _captureCount.ToString();
-            BtnSave.IsEnabled = true;
             Log($"📸 Skan #{_captureCount} xotiraga qo'shildi.");
         }
 
-        var bmp = MatToBitmapSource(enhanced);
-        bmp.Freeze();
-        CapturedImage.Source = bmp;
-        TxtCaptureCount.Text = _captureCount.ToString();
+        RefreshCapturedList();
         captureMat.Dispose();
 
         if (_isManualCropMode) BtnManualCrop_Click(this, new RoutedEventArgs());
     }
 
+    // ─── Olingan rasmlar ro'yxati (o'ng panel) ────────────────────
+    // Joriy ro'yxat: shartnoma rejimida — tanlangan karta rasmlari, mustaqil rejimda — _scannedPages
+    private List<Mat>? CurrentImageList()
+    {
+        if (_contract == null) return _scannedPages;
+        if (_selectedDocumentType == null) return null;
+        return _cardImages.TryGetValue(_selectedDocumentType.Id, out var list) ? list : null;
+    }
+
+    private void RefreshCapturedList()
+    {
+        CapturedListPanel.Children.Clear();
+        var list = CurrentImageList();
+        var count = list?.Count ?? 0;
+
+        // Chapdan o'ngga: 1, 2, 3...
+        for (int i = 0; i < count; i++)
+            CapturedListPanel.Children.Add(CreateCapturedItem(list![i], i));
+
+        if (_contract == null) _captureCount = count;
+        TxtCaptureCount.Text = count.ToString();
+        BtnSave.IsEnabled = count > 0;
+        TxtNoImages.Visibility = count == 0 ? Visibility.Visible : Visibility.Collapsed;
+    }
+
+    private Border CreateCapturedItem(Mat mat, int index)
+    {
+        // Kichraytirilgan nusxa — to'liq o'lchamli rasmni UI da saqlamaslik uchun
+        const int thumbWidth = 240;
+        BitmapSource bmp;
+        if (mat.Cols > thumbWidth)
+        {
+            using var small = new Mat();
+            Cv2.Resize(mat, small, new OpenCvSharp.Size(thumbWidth, (int)(mat.Rows * (double)thumbWidth / mat.Cols)),
+                0, 0, InterpolationFlags.Area);
+            bmp = MatToBitmapSource(small);
+        }
+        else bmp = MatToBitmapSource(mat);
+        bmp.Freeze();
+
+        var grid = new Grid();
+        grid.Children.Add(new Image
+        {
+            Source  = bmp,
+            Width   = 110,
+            Height  = 140,
+            Stretch = Stretch.Uniform
+        });
+        RenderOptions.SetBitmapScalingMode(grid.Children[0], BitmapScalingMode.HighQuality);
+
+        grid.Children.Add(new Border
+        {
+            Background          = new SolidColorBrush(Color.FromArgb(200, 17, 24, 39)),
+            CornerRadius        = new CornerRadius(4),
+            Padding             = new Thickness(5, 1, 5, 1),
+            Margin              = new Thickness(4),
+            HorizontalAlignment = HorizontalAlignment.Left,
+            VerticalAlignment   = VerticalAlignment.Top,
+            Child = new TextBlock { Text = $"{index + 1}", Foreground = Brushes.White, FontSize = 11 }
+        });
+
+        var delBtn = new Button
+        {
+            Content             = "",   // Segoe MDL2 Assets – Delete
+            FontFamily          = new FontFamily("Segoe MDL2 Assets"),
+            FontSize            = 11,
+            Style               = (Style)FindResource("DangerButton"),
+            Padding             = new Thickness(6, 4, 6, 4),
+            Margin              = new Thickness(4),
+            HorizontalAlignment = HorizontalAlignment.Right,
+            VerticalAlignment   = VerticalAlignment.Top,
+            ToolTip             = "Rasmni o'chirish",
+            FocusVisualStyle    = null
+        };
+        delBtn.Click += (s, e) => DeleteCapturedImage(mat);
+        grid.Children.Add(delBtn);
+
+        return new Border
+        {
+            Background   = new SolidColorBrush(Color.FromRgb(10, 13, 20)),
+            CornerRadius = new CornerRadius(6),
+            Margin       = new Thickness(0, 0, 8, 8),
+            Child        = grid
+        };
+    }
+
+    private void DeleteCapturedImage(Mat mat)
+    {
+        var list = CurrentImageList();
+        if (list == null) return;
+        var index = list.IndexOf(mat);
+        if (index < 0) return;
+
+        if (MessageBox.Show($"{index + 1}-rasm o'chirilsinmi?", "Rasmni o'chirish",
+                MessageBoxButton.YesNo, MessageBoxImage.Question) != MessageBoxResult.Yes)
+            return;
+
+        list.RemoveAt(index);
+        mat.Dispose();
+        RefreshCapturedList();
+        Log($"🗑 {index + 1}-rasm o'chirildi. Qolgan: {list.Count}");
+    }
+
     // ─── Manual Crop ─────────────────────────────────────────────
+    // ─── Autofokus ────────────────────────────────────────────────
+    // Drayver fokusni o'chirib qo'ygan bo'lishi mumkin: avval o'chirib, keyin yoqamiz — kamera fokusni qayta boshlaydi.
+    // Kamera oqimi boshlangandan keyin chaqiriladi (ba'zi drayverlar undan oldingi sozlamani e'tiborsiz qoldiradi).
+    private static string EnableAutoFocus(VideoCapture cap)
+    {
+        cap.Set(VideoCaptureProperties.AutoFocus, 0);
+        bool ok = cap.Set(VideoCaptureProperties.AutoFocus, 1);
+        var state = cap.Get(VideoCaptureProperties.AutoFocus);
+        return ok
+            ? $"🎯 Autofokus yoqildi (holat: {state})"
+            : $"⚠ Kamera autofokusni qabul qilmadi (holat: {state})";
+    }
+
     private void BtnManualCrop_Click(object sender, RoutedEventArgs e)
     {
         if (!_isManualCropMode)
@@ -1002,8 +1231,12 @@ public partial class ScannerPage : UserControl
     }
 
     // ─── Hujjat Burchaklarini Topish ─────────────────────────────
-    private static Point2f[] FindDocumentCorners(Mat img)
+    private static Point2f[] FindDocumentCorners(Mat img) => FindDocumentCorners(img, out _);
+
+    // found = false — hujjat konturi topilmadi, 10% chetli standart to'rtburchak qaytarildi
+    private static Point2f[] FindDocumentCorners(Mat img, out bool found)
     {
+        found = true;
         using var gray = new Mat();
         Cv2.CvtColor(img, gray, ColorConversionCodes.BGR2GRAY);
         using var blurred = new Mat();
@@ -1030,6 +1263,7 @@ public partial class ScannerPage : UserControl
                 return OrderPoints(Cv2.MinAreaRect(largest).Points());
         }
 
+        found = false;
         int mx = (int)(img.Width * 0.1), my = (int)(img.Height * 0.1);
         return new[] {
             new Point2f(mx, my), new Point2f(img.Width - mx, my),
@@ -1103,9 +1337,7 @@ public partial class ScannerPage : UserControl
                 foreach (var mat in _scannedPages) mat.Dispose();
                 _scannedPages.Clear();
                 _captureCount = 0;
-                TxtCaptureCount.Text = "0";
-                BtnSave.IsEnabled = false;
-                CapturedImage.Source = null;
+                RefreshCapturedList();
             }
             catch (Exception ex) { Log($"❌ Saqlash xatosi: {ex.Message}"); }
         }
@@ -1124,7 +1356,8 @@ public partial class ScannerPage : UserControl
             await Task.Run(() => CreatePdf(images, pdfPath));
 
             // 2. PDF ni serverga yuklash (base64 orqali — hajm cheklovi yo'q)
-            var uploadResult = await UploadService.UploadPdfBase64Async(pdfPath, _contract!.Id, _contract.Name);
+            // Fayl nomi ishlagan versiyadagidek "<mijoz>_<karta id>" — har karta alohida fayl bo'lib, bir-birini ustidan yozmaydi
+            var uploadResult = await UploadService.UploadPdfBase64Async(pdfPath, _contract!.Id, $"{_contract.Name}_{cardId}");
             if (uploadResult?.Success != true || string.IsNullOrEmpty(uploadResult.Resoult?.Url))
             {
                 await Dispatcher.InvokeAsync(() =>
@@ -1141,6 +1374,7 @@ public partial class ScannerPage : UserControl
             // 4. Mavjud yozuv bo'lsa UPDATE, bo'lmasa STORE
             // constant_details va details ikkalasidan qidiramiz, eng oxirgi ID ni olamiz
             bool savedOk = false;
+            ContractDetailEntryUpdate? savedEntry = null; // server qaytargan yozuv (file URL bilan)
             var existingDetail = _initiallyUploadedCardIds.Contains(cardId)
                 ? (_fetchedConstantDetails ?? new List<ContractDetailEntry>())
                     .Concat(_fetchedDetails ?? new List<ContractDetailEntry>())
@@ -1154,6 +1388,7 @@ public partial class ScannerPage : UserControl
                 var updateResult = await ConstantDocumentDetailService.UpdateAsync(
                     existingDetail.Id, long.Parse(_contract!.DocumentNumber), cardId, filePath, images.Count);
                 savedOk = updateResult?.Status == true && updateResult?.Resoult != null;
+                savedEntry = updateResult?.Resoult;
                 if (!savedOk)
                     await Dispatcher.InvokeAsync(() =>
                         Log($"❌ Update xatosi (id={existingDetail.Id}): status={updateResult?.Status}, resoult={updateResult?.Resoult?.Id.ToString() ?? "null"}"));
@@ -1163,6 +1398,7 @@ public partial class ScannerPage : UserControl
                 var storeResult = await ConstantDocumentDetailService.StoreAsync(
                     long.Parse(_contract!.DocumentNumber), cardId, filePath, images.Count);
                 savedOk = storeResult?.Status == true && storeResult?.Resoult != null;
+                savedEntry = storeResult?.Resoult;
                 if (!savedOk)
                     await Dispatcher.InvokeAsync(() =>
                         Log($"❌ Store xatosi: status={storeResult?.Status}, resoult={(storeResult?.Resoult?.Id.ToString() ?? "null")}, message={storeResult?.Message ?? "server javobi yo'q"}"));
@@ -1175,10 +1411,37 @@ public partial class ScannerPage : UserControl
                 {
                     var refreshed = await GetContractService.SearchAllAsync(_contract!.DocumentNumber);
                     var refreshedContract = refreshed?.Resoult?.Data?.FirstOrDefault();
-                    _fetchedConstantDetails = refreshedContract?.ConstantDetails;
-                    _fetchedDetails         = refreshedContract?.Details;
+                    // get/all bo'sh qaytarsa (shartnoma faqat 1C da) — mavjud ro'yxatni o'chirib yubormaymiz
+                    if (refreshedContract != null)
+                    {
+                        _fetchedConstantDetails = refreshedContract.ConstantDetails;
+                        _fetchedDetails         = refreshedContract.Details;
+                    }
                 }
                 catch { /* yangilash bo'lmasa ham davom etamiz */ }
+
+                // Server qaytargan yozuvni lokal ro'yxatga qo'shamiz — ko'z tugmasi PDF manzilini shundan oladi
+                if (savedEntry != null && !string.IsNullOrEmpty(savedEntry.File))
+                {
+                    var all = (_fetchedConstantDetails ?? new List<ContractDetailEntry>())
+                        .Concat(_fetchedDetails ?? new List<ContractDetailEntry>());
+                    if (!all.Any(d => d.Id == savedEntry.Id && d.File == savedEntry.File))
+                    {
+                        _fetchedDetails ??= new List<ContractDetailEntry>();
+                        _fetchedDetails.RemoveAll(d => d.Id == savedEntry.Id);
+                        _fetchedDetails.Add(new ContractDetailEntry
+                        {
+                            Id                 = savedEntry.Id,
+                            ContractDocumentId = savedEntry.ContractDocumentId != 0 ? savedEntry.ContractDocumentId : cardId,
+                            PunktName          = savedEntry.PunktName,
+                            Color              = savedEntry.Color,
+                            File               = savedEntry.File,
+                            PhotoCount         = savedEntry.PhotoCount.ToString(),
+                            ResponsibleWorker  = savedEntry.ResponsibleWorker,
+                            Date               = savedEntry.Date
+                        });
+                    }
+                }
 
                 await Dispatcher.InvokeAsync(() =>
                 {
@@ -1190,8 +1453,7 @@ public partial class ScannerPage : UserControl
                         foreach (var m in stored) m.Dispose();
                         _cardImages.Remove(cardId);
                     }
-                    BtnSave.IsEnabled = false;
-                    TxtCaptureCount.Text = "0";
+                    RefreshCapturedList();
                     var action = existingDetail != null ? "Yangilandi" : "Saqlandi";
                     Log($"✅ Karta {action}! (rasm: {images.Count}, filial: {branchName})");
                 });
@@ -1287,7 +1549,7 @@ public partial class ScannerPage : UserControl
         }
     }
 
-    // ─── Ko'z tugmasi: PDF ni brauzerda ochish ────────────────────
+    // ─── Ko'z tugmasi: PDF ni Chrome da ochish (Chrome yo'q bo'lsa — boshqa brauzer) ──
     private void OpenCardPdf(int cardId)
     {
         var url = (_fetchedConstantDetails ?? new List<ContractDetailEntry>())
@@ -1295,7 +1557,10 @@ public partial class ScannerPage : UserControl
             .Where(d => d.ContractDocumentId == cardId)
             .OrderByDescending(d => d.Id)
             .Select(d => d.File)
-            .FirstOrDefault(f => !string.IsNullOrEmpty(f));
+            // Faqat haqiqiy PDF manzillari (bazada "http://adsdasd/" kabi test yozuvlari ham bor)
+            .FirstOrDefault(f => !string.IsNullOrEmpty(f)
+                && Uri.TryCreate(f, UriKind.Absolute, out var u)
+                && u.AbsolutePath.EndsWith(".pdf", StringComparison.OrdinalIgnoreCase));
 
         if (string.IsNullOrEmpty(url))
         {
@@ -1311,9 +1576,10 @@ public partial class ScannerPage : UserControl
 
         var browsers = new[]
         {
-            ("Yandex Browser", Path.Combine(localApp, @"Yandex\YandexBrowser\Application\browser.exe")),
-            ("Google Chrome",  Path.Combine(localApp, @"Google\Chrome\Application\chrome.exe")),
             ("Google Chrome",  Path.Combine(prog64,   @"Google\Chrome\Application\chrome.exe")),
+            ("Google Chrome",  Path.Combine(progX86,  @"Google\Chrome\Application\chrome.exe")),
+            ("Google Chrome",  Path.Combine(localApp, @"Google\Chrome\Application\chrome.exe")),
+            ("Yandex Browser", Path.Combine(localApp, @"Yandex\YandexBrowser\Application\browser.exe")),
             ("Microsoft Edge", Path.Combine(progX86,  @"Microsoft\Edge\Application\msedge.exe")),
             ("Microsoft Edge", Path.Combine(prog64,   @"Microsoft\Edge\Application\msedge.exe")),
             ("Mozilla Firefox",Path.Combine(prog64,   @"Mozilla Firefox\firefox.exe")),

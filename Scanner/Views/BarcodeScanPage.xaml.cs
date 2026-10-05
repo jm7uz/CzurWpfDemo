@@ -23,6 +23,7 @@ public partial class BarcodeScanPage : UserControl
     private CancellationTokenSource? _cts;
     private Task? _captureTask;
     private bool _isRunning;
+    private bool _autoFocusApplied;
 
     // ─── Barcode aniqlash ───────────────────────────────────────────
     private bool _isProcessingBarcode;
@@ -113,6 +114,13 @@ public partial class BarcodeScanPage : UserControl
                 {
                     Thread.Sleep(10);
                     continue;
+                }
+
+                if (!_autoFocusApplied)
+                {
+                    _autoFocusApplied = true;
+                    _capture.Set(VideoCaptureProperties.AutoFocus, 0);
+                    _capture.Set(VideoCaptureProperties.AutoFocus, 1);
                 }
 
                 // FPS hisoblash
@@ -368,7 +376,8 @@ public partial class BarcodeScanPage : UserControl
             }
 
             await StopCameraAsync();
-            AppShell.Current?.NavigateReplace(new ScannerPage(contract));
+            // 1C dan kelgan filial nomi — ScannerPage da avtomatik tanlanadi
+            AppShell.Current?.NavigateReplace(new ScannerPage(contract, validation.Resoult?.Branch));
         }
         catch (Exception ex)
         {

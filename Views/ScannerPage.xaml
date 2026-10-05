@@ -312,6 +312,13 @@
                             <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
                                 <Button x:Name="BtnStart" Visibility="Collapsed" Click="BtnStart_Click"/>
                                 <Button x:Name="BtnStop"  Visibility="Collapsed" Click="BtnStop_Click"/>
+                                <Button x:Name="BtnAutoCapture"
+                                        Content="⏱  Avto: O'chiq"
+                                        Style="{StaticResource PrimaryButton}"
+                                        Background="#374151"
+                                        ToolTip="Varaq qimirlamay tursa avtomatik rasmga olish"
+                                        Click="BtnAutoCapture_Click"
+                                        IsEnabled="False" Margin="0,0,8,0"/>
                                 <Button x:Name="BtnManualCrop"
                                         Content="✏  Qo'lda"
                                         Style="{StaticResource PrimaryButton}"
@@ -330,8 +337,12 @@
             </Border>
 
             <!-- O'ng panel -->
-            <StackPanel Grid.Column="2">
-                <Border Style="{StaticResource CardBorder}" Margin="0,0,0,12">
+            <Grid Grid.Column="2">
+                <Grid.RowDefinitions>
+                    <RowDefinition Height="Auto"/>
+                    <RowDefinition Height="*"/>
+                </Grid.RowDefinitions>
+                <Border Grid.Row="0" Style="{StaticResource CardBorder}" Margin="0,0,0,12">
                     <StackPanel>
                         <TextBlock Text="Holat:" Style="{StaticResource LabelText}" Margin="0,0,0,2"/>
                         <TextBlock x:Name="TxtStatus" Text="Tayyor"
@@ -346,23 +357,28 @@
                     </StackPanel>
                 </Border>
 
-                <Border Style="{StaticResource CardBorder}" Margin="0,0,0,12">
-                    <StackPanel>
-                        <TextBlock Text="Oxirgi Rasm"
+                <!-- Olingan rasmlar: noto'g'ri olinganini o'chirish mumkin -->
+                <Border Grid.Row="1" Style="{StaticResource CardBorder}">
+                    <DockPanel>
+                        <TextBlock DockPanel.Dock="Top" Text="Olingan rasmlar"
                                    Style="{StaticResource LabelText}"
                                    Margin="0,0,0,8" FontSize="13"/>
-                        <Border Background="#0A0D14" CornerRadius="6" Height="150">
-                            <Image x:Name="CapturedImage"
-                                   Stretch="Uniform"
-                                   RenderOptions.BitmapScalingMode="HighQuality"/>
-                        </Border>
-                        <Button x:Name="BtnSave" Content="PDF qilib saqlash"
+                        <Button x:Name="BtnSave" DockPanel.Dock="Bottom" Content="PDF qilib saqlash"
                                 Style="{StaticResource PrimaryButton}"
                                 Click="BtnSave_Click" IsEnabled="False"
                                 Margin="0,10,0,0"/>
-                    </StackPanel>
+                        <Grid>
+                            <TextBlock x:Name="TxtNoImages"
+                                       Text="Hali rasm olinmagan"
+                                       Foreground="#6B7280" FontSize="12"
+                                       HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                            <ScrollViewer VerticalScrollBarVisibility="Auto">
+                                <WrapPanel x:Name="CapturedListPanel" Orientation="Horizontal"/>
+                            </ScrollViewer>
+                        </Grid>
+                    </DockPanel>
                 </Border>
-            </StackPanel>
+            </Grid>
         </Grid>
 
         <!-- Log satri -->
